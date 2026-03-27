@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ViewStyle } from 'react-native';
-import { Button, Text, TouchableOpacity, View } from 'react-native';
+import { Button, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ const HEADER_HEIGHT = 64;
 const SHEET_HEADER_HEIGHT = HANDLE_HEIGHT + HEADER_HEIGHT;
 const SECTION_HEIGHT = 176;
 const LIST_ITEM_HEIGHT = 48;
+const INLINE_FLATLIST_PREVIEW_ITEMS = 5;
 
 const DATA = Array.from({ length: 48 }, (_, i) => ({
   id: String(i),
@@ -104,6 +105,7 @@ const AppContent = () => {
   const [flatListIndex, setFlatListIndex] = useState(0);
   const [scrollViewIndex, setScrollViewIndex] = useState(0);
   const [inlineIndex, setInlineIndex] = useState(0);
+  const [inlineFlatListIndex, setInlineFlatListIndex] = useState(0);
   return (
     <BottomSheetProvider>
       <View
@@ -124,6 +126,10 @@ const AppContent = () => {
           onPress={() => setFlatListIndex(1)}
         />
         <Button title="Inline with detents" onPress={() => setInlineIndex(1)} />
+        <Button
+          title="Inline with FlatList"
+          onPress={() => setInlineFlatListIndex(1)}
+        />
       </View>
       <ModalBottomSheet index={basicIndex} onIndexChange={setBasicIndex}>
         <SheetBackground>
@@ -222,6 +228,41 @@ const AppContent = () => {
           >
             <Text>Section 2</Text>
           </View>
+        </SheetBackground>
+      </BottomSheet>
+      <BottomSheet
+        detents={[
+          0,
+          SHEET_HEADER_HEIGHT +
+            LIST_ITEM_HEIGHT * INLINE_FLATLIST_PREVIEW_ITEMS,
+          'max',
+        ]}
+        index={inlineFlatListIndex}
+        onIndexChange={setInlineFlatListIndex}
+      >
+        <SheetBackground style={{ flex: 1 }}>
+          <SheetHeader
+            title="Inline with FlatList"
+            onClose={() => setInlineFlatListIndex(0)}
+          />
+          <FlatList
+            data={DATA}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            renderItem={({ item, index }) => (
+              <View
+                style={{
+                  height: LIST_ITEM_HEIGHT,
+                  justifyContent: 'center',
+                  paddingHorizontal: 16,
+                  borderBottomWidth: index === DATA.length - 1 ? 0 : 1,
+                  borderBottomColor: '#eee',
+                }}
+              >
+                <Text>{item.title}</Text>
+              </View>
+            )}
+          />
         </SheetBackground>
       </BottomSheet>
     </BottomSheetProvider>

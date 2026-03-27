@@ -69,14 +69,23 @@ export const BottomSheet = ({
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       <BottomSheetNativeComponent
         pointerEvents={sheetPointerEvents}
-        style={[StyleSheet.absoluteFill, style]}
+        style={[
+          {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: maxHeight,
+          },
+          style,
+        ]}
         detents={resolvedDetents}
         index={index}
         animateIn={animateIn}
         onIndexChange={handleIndexChange}
         onPositionChange={handlePositionChange}
       >
-        <View pointerEvents="box-none">
+        <View collapsable={false} style={{ flex: 1 }} pointerEvents="box-none">
           {children}
           <View onLayout={handleSentinelLayout} pointerEvents="none" />
         </View>
