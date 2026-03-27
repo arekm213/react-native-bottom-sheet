@@ -1,12 +1,12 @@
 package com.swmansion.reactnativebottomsheet
 
+import android.view.View
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewGroupManager
 import com.facebook.react.uimanager.ViewManagerDelegate
 import com.facebook.react.uimanager.annotations.ReactProp
-import android.view.View
 import com.facebook.react.viewmanagers.BottomSheetViewManagerDelegate
 import com.facebook.react.viewmanagers.BottomSheetViewManagerInterface
 
@@ -62,6 +62,8 @@ class BottomSheetViewManager :
   override fun removeViewAt(parent: BottomSheetView, index: Int) {
     parent.removeSheetChildAt(index)
   }
+
+  override fun needsCustomLayoutForChildren(): Boolean = true
 
   override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> {
     return mapOf(

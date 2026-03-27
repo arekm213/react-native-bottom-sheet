@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
-import { useWindowDimensions } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import type { LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { runOnUI, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BottomSheetNativeComponent from './BottomSheetNativeComponent';
-import type { Detent, DetentValue } from './bottomSheetUtils';
+import { type Detent, resolveDetent } from './bottomSheetUtils';
 export type { Detent, DetentValue } from './bottomSheetUtils';
 export { programmatic } from './bottomSheetUtils';
 
@@ -31,14 +31,23 @@ export const BottomSheet = ({
   const { height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const maxHeight = screenHeight - insets.top;
+  const [contentHeight, setContentHeight] = useState(0);
 
   const resolvedDetents = detents.map((detent) => {
-    const value = resolveDetentValue(detent, maxHeight);
+    const value = resolveDetent(detent, contentHeight, maxHeight);
     return {
       height: Math.max(0, Math.min(value, maxHeight)),
       programmatic: isDetentProgrammatic(detent),
     };
   });
+
+  const handleSentinelLayout = (event: LayoutChangeEvent) => {
+    setContentHeight(event.nativeEvent.layout.y);
+  };
+
+  const clampedIndex = Math.max(0, Math.min(index, resolvedDetents.length - 1));
+  const isCollapsed = (resolvedDetents[clampedIndex]?.height ?? 0) === 0;
+  const sheetPointerEvents = isCollapsed ? 'none' : 'box-none';
 
   const handleIndexChange = (event: { nativeEvent: { index: number } }) => {
     onIndexChange?.(event.nativeEvent.index);
@@ -57,24 +66,24 @@ export const BottomSheet = ({
   };
 
   return (
-    <BottomSheetNativeComponent
-      style={style}
-      detents={resolvedDetents}
-      index={index}
-      animateIn={animateIn}
-      onIndexChange={handleIndexChange}
-      onPositionChange={handlePositionChange}
-    >
-      {children}
-    </BottomSheetNativeComponent>
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      <BottomSheetNativeComponent
+        pointerEvents={sheetPointerEvents}
+        style={[StyleSheet.absoluteFill, style]}
+        detents={resolvedDetents}
+        index={index}
+        animateIn={animateIn}
+        onIndexChange={handleIndexChange}
+        onPositionChange={handlePositionChange}
+      >
+        <View pointerEvents="box-none">
+          {children}
+          <View onLayout={handleSentinelLayout} pointerEvents="none" />
+        </View>
+      </BottomSheetNativeComponent>
+    </View>
   );
 };
-
-function resolveDetentValue(detent: Detent, maxHeight: number): number {
-  const value: DetentValue =
-    typeof detent === 'object' && detent !== null ? detent.value : detent;
-  return value === 'max' ? maxHeight : value;
-}
 
 function isDetentProgrammatic(detent: Detent): boolean {
   if (typeof detent === 'object' && detent !== null) {

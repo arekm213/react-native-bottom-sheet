@@ -11,6 +11,8 @@ import android.widget.FrameLayout
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
+import com.facebook.react.uimanager.PointerEvents
+import com.facebook.react.views.view.ReactViewGroup
 import kotlin.math.abs
 
 private data class DetentSpec(val height: Float, val programmatic: Boolean)
@@ -20,7 +22,7 @@ interface BottomSheetViewListener {
   fun onPositionChange(position: Double)
 }
 
-class BottomSheetView(context: Context) : FrameLayout(context) {
+class BottomSheetView(context: Context) : ReactViewGroup(context) {
 
   // MARK: - Listener
 
@@ -52,6 +54,7 @@ class BottomSheetView(context: Context) : FrameLayout(context) {
   init {
     clipChildren = false
     clipToPadding = false
+    pointerEvents = PointerEvents.BOX_NONE
     sheetContainer.clipChildren = false
     sheetContainer.clipToPadding = false
     super.addView(
@@ -103,9 +106,7 @@ class BottomSheetView(context: Context) : FrameLayout(context) {
     val h = b - t
     if (w <= 0 || h <= 0) return
 
-    val maxHeight = detentSpecs.lastOrNull()?.height ?: h.toFloat()
-    val containerTop = (h - maxHeight).toInt()
-    sheetContainer.layout(0, containerTop, w, containerTop + maxHeight.toInt())
+    layoutSheetContainer(w, h)
 
     if (!hasLaidOut && detentSpecs.isNotEmpty()) {
       hasLaidOut = true
@@ -130,6 +131,20 @@ class BottomSheetView(context: Context) : FrameLayout(context) {
     sheetContainer.translationY = translationY(targetIndex)
   }
 
+  private fun layoutSheetChildren() {
+    for (i in 0 until sheetContainer.childCount) {
+      val child = sheetContainer.getChildAt(i)
+      child.layout(0, 0, child.measuredWidth, child.measuredHeight)
+    }
+  }
+
+  private fun layoutSheetContainer(viewWidth: Int, viewHeight: Int) {
+    val maxHeight = detentSpecs.lastOrNull()?.height ?: viewHeight.toFloat()
+    val containerTop = (viewHeight - maxHeight).toInt()
+    sheetContainer.layout(0, containerTop, viewWidth, containerTop + maxHeight.toInt())
+    layoutSheetChildren()
+  }
+
   // MARK: - Prop setters
 
   fun setDetents(raw: List<Map<String, Any>>) {
@@ -138,6 +153,17 @@ class BottomSheetView(context: Context) : FrameLayout(context) {
       val programmatic = dict["programmatic"] as? Boolean ?: false
       DetentSpec(height = (height * density).toFloat(), programmatic = programmatic)
     }
+
+    if (width > 0 && height > 0 && detentSpecs.isNotEmpty()) {
+      layoutSheetContainer(width, height)
+
+      if (hasLaidOut && activeAnimation == null && !isPanning) {
+        targetIndex = targetIndex.coerceIn(0, detentSpecs.size - 1)
+        sheetContainer.translationY = translationY(targetIndex)
+        emitPosition()
+      }
+    }
+
     requestLayout()
   }
 
@@ -252,10 +278,13 @@ class BottomSheetView(context: Context) : FrameLayout(context) {
   // MARK: - Touch handling
 
   override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+    val sheetTop = sheetContainer.top + sheetContainer.translationY
+    if (ev.y < sheetTop) {
+      return false
+    }
+
     when (ev.actionMasked) {
       MotionEvent.ACTION_DOWN -> {
-        val sheetTop = sheetContainer.top + sheetContainer.translationY
-        if (ev.y < sheetTop) return false
         initialTouchY = ev.y
         lastTouchY = ev.y
         activePointerId = ev.getPointerId(0)
@@ -288,6 +317,11 @@ class BottomSheetView(context: Context) : FrameLayout(context) {
   }
 
   override fun onTouchEvent(event: MotionEvent): Boolean {
+    val sheetTop = sheetContainer.top + sheetContainer.translationY
+    if (event.y < sheetTop) {
+      return false
+    }
+
     when (event.actionMasked) {
       MotionEvent.ACTION_DOWN -> {
         beginPan(event)
