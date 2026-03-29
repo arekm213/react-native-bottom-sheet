@@ -59,6 +59,10 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   init {
     clipChildren = false
     clipToPadding = false
+    // Set directly rather than via the JSX prop because Fabric doesn't forward
+    // pointerEvents to the native view on Android. Without BOX_NONE the view
+    // itself becomes a touch target and its onTouchEvent would claim gestures
+    // that should go to children.
     pointerEvents = PointerEvents.BOX_NONE
     sheetContainer.clipChildren = false
     sheetContainer.clipToPadding = false
@@ -327,6 +331,10 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
           if (!isAtMaxDraggable) {
             lastTouchY = y
             requestDisallowInterceptTouchEvent(false)
+            // Cancel in-flight JS touches. React Native's JSTouchDispatcher
+            // processes events at the root view level before onInterceptTouchEvent
+            // runs, so without this the JS side never sees a cancel and Pressable
+            // would still fire onPress.
             NativeGestureUtil.notifyNativeGestureStarted(this, ev)
             return true
           }
@@ -408,6 +416,12 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   }
 
   // MARK: - Scroll view helpers
+  //
+  // Explicit scroll-view detection is required because Android's touch dispatch
+  // doesn't support mid-gesture handoff. Once a ScrollView claims a gesture it
+  // keeps it for the entire sequence, and it always claims (returns true from
+  // onTouchEvent) even when at the scroll boundary. Without this check the sheet
+  // could never collapse by dragging down when a ScrollView is at the top.
 
   private fun isScrollViewAtTop(): Boolean {
     val scrollView = findScrollView(sheetContainer) ?: return true

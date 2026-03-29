@@ -42,6 +42,8 @@ public final class RNSBottomSheetHostingView: UIView {
     panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
     panGesture.delegate = self
     panGesture.cancelsTouchesInView = true
+    // Delay touch delivery to views so that Pressable doesn't flash its pressed
+    // state while the pan gesture is still being disambiguated.
     panGesture.delaysTouchesBegan = true
     panGesture.delaysTouchesEnded = false
     sheetContainer.addGestureRecognizer(panGesture)
@@ -51,6 +53,12 @@ public final class RNSBottomSheetHostingView: UIView {
     fatalError("init(coder:) has not been implemented")
   }
 
+  // RCTSurfaceTouchHandler dispatches touch events to JS independently of the
+  // pan gesture (it fires in touchesBegan: regardless of its recognizer state).
+  // We cache it here and toggle isEnabled in handlePan(.began) to force a
+  // touchesCancelled dispatch to JS, preventing Pressable from firing onPress
+  // during a sheet drag. This is the iOS equivalent of Android's
+  // NativeGestureUtil.notifyNativeGestureStarted.
   private weak var surfaceTouchHandler: UIGestureRecognizer?
 
   public override func didMoveToWindow() {
@@ -346,8 +354,10 @@ public final class RNSBottomSheetHostingView: UIView {
     guard draggable.count > 1 else { return false }
 
     let maxDraggableIndex = draggable.last?.offset ?? 0
+    // Below max: allow drag in either direction to reach other detents.
     guard targetIndex >= maxDraggableIndex else { return true }
-
+    // At max: only allow downward drag, and only when the scroll view (if any)
+    // is at its top edge — otherwise the scroll view should handle the gesture.
     if velocity.y < 0 {
       return false
     }
