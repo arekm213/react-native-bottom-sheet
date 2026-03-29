@@ -61,6 +61,7 @@ export const BottomSheet = ({
   const [contentHeight, setContentHeight] = useState(0);
   const currentPositionRef = useRef(0);
   const scrimProgress = useRef(new Animated.Value(0)).current;
+  const sheetOpacity = useRef(new Animated.Value(0)).current;
 
   const resolvedDetents = detents.map((detent) => {
     const value = resolveDetent(detent, contentHeight, maxHeight);
@@ -130,6 +131,7 @@ export const BottomSheet = ({
         ? 0
         : Math.min(1, Math.max(0, height / firstNonzeroDetent));
     scrimProgress.setValue(progress);
+    sheetOpacity.setValue(height === 0 ? 0 : 1);
     onPositionChange?.(height);
   };
 
@@ -162,7 +164,10 @@ export const BottomSheet = ({
           {scrimElement}
         </Pressable>
       ) : null}
-      <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      <Animated.View
+        pointerEvents="box-none"
+        style={[StyleSheet.absoluteFill, { opacity: sheetOpacity }]}
+      >
         <BottomSheetNativeComponent
           pointerEvents={sheetPointerEvents}
           style={[
@@ -190,7 +195,7 @@ export const BottomSheet = ({
             <View onLayout={handleSentinelLayout} pointerEvents="none" />
           </View>
         </BottomSheetNativeComponent>
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 
