@@ -327,22 +327,10 @@ public final class RNSBottomSheetHostingView: UIView {
 extension RNSBottomSheetHostingView: UIGestureRecognizerDelegate {
   public func gestureRecognizer(
     _ gestureRecognizer: UIGestureRecognizer,
-    shouldRequireFailureOf other: UIGestureRecognizer
-  ) -> Bool {
-    guard gestureRecognizer === panGesture else { return false }
-
-    if other is UITapGestureRecognizer {
-      return true
-    }
-
-    return false
-  }
-
-  public func gestureRecognizer(
-    _ gestureRecognizer: UIGestureRecognizer,
     shouldBeRequiredToFailBy other: UIGestureRecognizer
   ) -> Bool {
-    return gestureRecognizer === panGesture && other is UIPanGestureRecognizer
+    guard gestureRecognizer === panGesture else { return false }
+    return other is UIPanGestureRecognizer || other is UITapGestureRecognizer
   }
 
   public func gestureRecognizer(

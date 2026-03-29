@@ -15,6 +15,7 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.uimanager.PointerEvents
 import com.facebook.react.uimanager.StateWrapper
 import com.facebook.react.views.view.ReactViewGroup
+import com.facebook.react.uimanager.events.NativeGestureUtil
 import kotlin.math.abs
 
 private data class DetentSpec(val height: Float, val programmatic: Boolean)
@@ -326,11 +327,13 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
           if (!isAtMaxDraggable) {
             lastTouchY = y
             requestDisallowInterceptTouchEvent(false)
+            NativeGestureUtil.notifyNativeGestureStarted(this, ev)
             return true
           }
           if (dy > 0 && isScrollViewAtTop()) {
             lastTouchY = y
             requestDisallowInterceptTouchEvent(false)
+            NativeGestureUtil.notifyNativeGestureStarted(this, ev)
             return true
           }
         }
