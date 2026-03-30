@@ -344,6 +344,15 @@ public final class RNSBottomSheetHostingView: UIView {
     return nil
   }
 
+  private func isViewInverted(_ view: UIView) -> Bool {
+    var current: UIView? = view
+    while let v = current, v !== sheetContainer {
+      if v.transform.d < 0 { return true }
+      current = v.superview
+    }
+    return false
+  }
+
   public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     guard gestureRecognizer === panGesture else { return true }
 
@@ -365,6 +374,11 @@ public final class RNSBottomSheetHostingView: UIView {
     guard let scrollView = firstScrollView(in: sheetContainer) else { return true }
     let locationInScroll = panGesture.location(in: scrollView)
     guard scrollView.bounds.contains(locationInScroll) else { return true }
+    let inverted = isViewInverted(scrollView)
+    if inverted {
+      let maxOffsetY = scrollView.contentSize.height - scrollView.bounds.height + scrollView.adjustedContentInset.bottom
+      return scrollView.contentOffset.y >= maxOffsetY
+    }
     return scrollView.contentOffset.y <= 0
   }
 }

@@ -426,20 +426,18 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   private fun isScrollViewAtTop(): Boolean {
     val scrollView = findScrollView(sheetContainer) ?: return true
     if (!isTouchInsideView(scrollView)) return true
-    return !scrollView.canScrollVertically(-1)
+    val inverted = isViewInverted(scrollView)
+    return if (inverted) !scrollView.canScrollVertically(1) else !scrollView.canScrollVertically(-1)
   }
 
   private fun isTouchInsideView(target: View): Boolean {
-    val targetLocation = IntArray(2)
-    target.getLocationOnScreen(targetLocation)
+    val rect = android.graphics.Rect()
+    if (!target.getGlobalVisibleRect(rect)) return false
     val myLocation = IntArray(2)
     getLocationOnScreen(myLocation)
-    val touchScreenX = myLocation[0] + initialTouchX
-    val touchScreenY = myLocation[1] + initialTouchY
-    return touchScreenX >= targetLocation[0] &&
-      touchScreenX < targetLocation[0] + target.width &&
-      touchScreenY >= targetLocation[1] &&
-      touchScreenY < targetLocation[1] + target.height
+    val touchScreenX = (myLocation[0] + initialTouchX).toInt()
+    val touchScreenY = (myLocation[1] + initialTouchY).toInt()
+    return rect.contains(touchScreenX, touchScreenY)
   }
 
   private fun findScrollView(view: View): View? {
@@ -450,6 +448,19 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
       }
     }
     return null
+  }
+
+  private fun isViewInverted(view: View): Boolean {
+    val values = FloatArray(9)
+    var current: View? = view
+    while (current != null && current !== sheetContainer) {
+      if (!current.matrix.isIdentity) {
+        current.matrix.getValues(values)
+        if (values[android.graphics.Matrix.MSCALE_Y] < 0) return true
+      }
+      current = current.parent as? View
+    }
+    return false
   }
 
   // MARK: - Cleanup
