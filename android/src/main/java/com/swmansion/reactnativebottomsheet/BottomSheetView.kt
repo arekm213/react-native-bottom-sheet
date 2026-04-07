@@ -205,7 +205,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
     }
 
     if (newIndex >= detentSpecs.size || newIndex == targetIndex) return
-    snapToIndex(newIndex, 0f)
+    snapToIndex(newIndex, 0f, emitIndexChange = false)
   }
 
   fun setScrimColor(color: Int?) {

@@ -173,7 +173,7 @@ public final class RNSBottomSheetHostingView: UIView {
     }
 
     guard newIndex < detentSpecs.count, newIndex != targetIndex else { return }
-    snapToIndex(newIndex, velocity: 0)
+    snapToIndex(newIndex, velocity: 0, emitIndexChange: false)
   }
 
   public func mountChildComponentView(_ childView: UIView, atIndex index: Int) {
