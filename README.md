@@ -42,7 +42,8 @@ React&nbsp;Native.
 The library provides two components: `BottomSheet` (inline) and
 `ModalBottomSheet` (modal). Both render their children as the sheet content
 (including any background) and are controlled via `detents`, `index`,
-and&nbsp;`onIndexChange`.
+and&nbsp;`onIndexChange`. Use `onSettle` for
+post&zwj;-&zwj;snap&nbsp;observability.
 
 ### Inline
 
@@ -108,13 +109,18 @@ its&nbsp;color:
 ### Detents and index
 
 Detents are the points to which the sheet snaps. Each detent is either a number
-(a fixed height in pixels) or `'max'` (the sheet’s content height, capped by the
-available screen height). The default detents are `[0, 'max']`.
+(a fixed height in pixels) or `'content'` (the sheet’s content height, capped by
+the available screen height). The default detents are `[0, 'content']`.
 
 The `index` prop is a zero&zwj;-&zwj;based index into the `detents` array.
-`onIndexChange` is called when the sheet snaps to a different detent after
-a drag. You can also control the sheet externally by updating the
-index&nbsp;state.
+`onIndexChange` and `onSettle` have different&nbsp;responsibilities:
+
+- `onIndexChange` is for user&zwj;-&zwj;triggered snaps. Treat it as the signal
+  to update your controlled `index`&nbsp;state.
+- `onSettle` fires when the sheet finishes snapping to a detent, regardless of
+  whether that snap was user&zwj;-&zwj;triggered or programmatic. Use it for
+  observability or side effects (analytics, reacting to collapse, etc.), not for
+  updating the controlled `index`&nbsp;state.
 
 ```tsx
 const [index, setIndex] = useState(0);
@@ -122,9 +128,12 @@ const [index, setIndex] = useState(0);
 
 ```tsx
 <BottomSheet // Or `ModalBottomSheet`.
-  detents={[0, 300, 'max']} // Collapsed, 300 px, content height.
+  detents={[0, 300, 'content']} // Collapsed, 300 px, content height.
   index={index}
-  onIndexChange={setIndex}
+  onIndexChange={setIndex} // Keep controlled state in sync.
+  onSettle={(nextIndex) => {
+    if (nextIndex === 0) console.log('Sheet collapsed.');
+  }}
 >
   {/* ... */}
 </BottomSheet>
@@ -138,9 +147,12 @@ drag snapping but can still be targeted via `index`&nbsp;updates.
 
 ```tsx
 <BottomSheet
-  detents={[0, programmatic(300), 'max']}
+  detents={[0, programmatic(300), 'content']}
   index={index}
   onIndexChange={setIndex}
+  onSettle={(nextIndex) => {
+    console.log(`Settled at ${nextIndex}.`);
+  }}
 >
   {/* ... */}
 </BottomSheet>
