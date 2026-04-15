@@ -128,7 +128,7 @@ public final class RNSBottomSheetHostingView: UIView {
   }
 
   private var presentedSheetFrame: CGRect {
-    if let presentation = sheetContainer.layer.presentation() {
+    if activeAnimator != nil, let presentation = sheetContainer.layer.presentation() {
       return presentation.frame
     }
     return sheetContainer.frame
@@ -260,14 +260,14 @@ public final class RNSBottomSheetHostingView: UIView {
 
   private var currentSheetHeight: CGFloat {
     let maxHeight = detentSpecs.last?.height ?? bounds.height
-    let ty = sheetContainer.layer.presentation()?.affineTransform().ty ?? sheetContainer.transform.ty
+    let ty = currentTranslationY
     return maxHeight - ty
   }
 
   public var currentContentOffsetY: CGFloat {
     let maxHeight = detentSpecs.last?.height ?? bounds.height
     let containerTop = bounds.height - maxHeight
-    let ty = sheetContainer.layer.presentation()?.affineTransform().ty ?? sheetContainer.transform.ty
+    let ty = currentTranslationY
     return containerTop + ty
   }
 
@@ -277,7 +277,7 @@ public final class RNSBottomSheetHostingView: UIView {
 
   private func emitPosition() {
     let maxHeight = detentSpecs.last?.height ?? bounds.height
-    let ty = sheetContainer.layer.presentation()?.affineTransform().ty ?? sheetContainer.transform.ty
+    let ty = currentTranslationY
     let position = maxHeight - ty
     updateScrim(forPosition: position)
     updateSheetVisibility(forPosition: position)
@@ -518,6 +518,13 @@ extension RNSBottomSheetHostingView: UIGestureRecognizerDelegate {
 }
 
 private extension RNSBottomSheetHostingView {
+  var currentTranslationY: CGFloat {
+    if activeAnimator != nil, let presentation = sheetContainer.layer.presentation() {
+      return presentation.affineTransform().ty
+    }
+    return sheetContainer.transform.ty
+  }
+
   func updateScrim() {
     updateScrim(forPosition: currentSheetHeight)
     updateSheetVisibility(forPosition: currentSheetHeight)
