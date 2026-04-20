@@ -54,6 +54,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
       updateInteractionState()
       updateScrim()
     }
+  var disableScrollableNegotiation: Boolean = false
   private var pendingIndex: Int? = null
   private var hasLaidOut = false
   private var isPanning = false
@@ -481,6 +482,9 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
         val dy = y - initialTouchY
 
         if (abs(dy) > touchSlop && abs(dy) > abs(dx) && draggableMinTy < draggableMaxTy) {
+          if (disableScrollableNegotiation && findScrollableAtTouch() != null) {
+            return false
+          }
           if (!isAtMaxDraggable) {
             lastTouchY = y
             requestDisallowInterceptTouchEvent(false)
@@ -602,28 +606,42 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   // could never collapse by dragging down when a ScrollView is at the top.
 
   private fun isScrollViewAtTop(): Boolean {
-    val scrollView = findScrollView(sheetContainer) ?: return true
-    if (!isTouchInsideView(scrollView)) return true
+    val scrollView = findScrollableAtTouch() ?: return true
     val inverted = isViewInverted(scrollView)
     return if (inverted) !scrollView.canScrollVertically(1) else !scrollView.canScrollVertically(-1)
   }
 
-  private fun isTouchInsideView(target: View): Boolean {
-    val rect = android.graphics.Rect()
-    if (!target.getGlobalVisibleRect(rect)) return false
-    val myLocation = IntArray(2)
-    getLocationOnScreen(myLocation)
-    val touchScreenX = (myLocation[0] + initialTouchX).toInt()
-    val touchScreenY = (myLocation[1] + initialTouchY).toInt()
-    return rect.contains(touchScreenX, touchScreenY)
+  private fun findScrollableAtTouch(): View? {
+    val containerX = initialTouchX - sheetContainer.left - sheetContainer.translationX
+    val containerY = initialTouchY - sheetContainer.top - sheetContainer.translationY
+    if (
+      containerX < 0f ||
+      containerX >= sheetContainer.width ||
+      containerY < 0f ||
+      containerY >= sheetContainer.height
+    ) {
+      return null
+    }
+    return findScrollableAtPoint(sheetContainer, containerX, containerY)
   }
 
-  private fun findScrollView(view: View): View? {
-    if (view.canScrollVertically(1) || view.canScrollVertically(-1)) return view
+  private fun findScrollableAtPoint(view: View, x: Float, y: Float): View? {
+    if (!view.isShown) return null
+
     if (view is ViewGroup) {
-      for (i in 0 until view.childCount) {
-        findScrollView(view.getChildAt(i))?.let { return it }
+      for (i in view.childCount - 1 downTo 0) {
+        val child = view.getChildAt(i)
+        val childX = x - child.left - child.translationX
+        val childY = y - child.top - child.translationY
+        if (childX < 0f || childX >= child.width || childY < 0f || childY >= child.height) {
+          continue
+        }
+        findScrollableAtPoint(child, childX, childY)?.let { return it }
       }
+    }
+
+    if (view.canScrollVertically(1) || view.canScrollVertically(-1)) {
+      return view
     }
     return null
   }

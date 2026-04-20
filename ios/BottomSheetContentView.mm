@@ -40,6 +40,16 @@
   return _impl.sheetContainer;
 }
 
+- (BOOL)disableScrollableNegotiation
+{
+  return _impl.disableScrollableNegotiation;
+}
+
+- (void)setDisableScrollableNegotiation:(BOOL)disableScrollableNegotiation
+{
+  _impl.disableScrollableNegotiation = disableScrollableNegotiation;
+}
+
 - (BOOL)modal
 {
   return _impl.modal;

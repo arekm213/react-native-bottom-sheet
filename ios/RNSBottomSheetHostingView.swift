@@ -34,6 +34,7 @@ public final class RNSBottomSheetHostingView: UIView {
   public var maxDetentHeight: CGFloat = .nan {
     didSet { refreshDetentsFromLayout() }
   }
+  public var disableScrollableNegotiation: Bool = false
 
   private var rawDetentSpecs: [RawDetentSpec] = []
   private var detentSpecs: [DetentSpec] = [] {
@@ -449,18 +450,6 @@ public final class RNSBottomSheetHostingView: UIView {
     return scrollView.alwaysBounceVertical || scrollView.contentSize.height > visibleHeight
   }
 
-  private func firstScrollView(in view: UIView) -> UIScrollView? {
-    for subview in view.subviews {
-      if let scrollView = subview as? UIScrollView, isVerticallyScrollable(scrollView) {
-        return scrollView
-      }
-      if let found = firstScrollView(in: subview) {
-        return found
-      }
-    }
-    return nil
-  }
-
   private func isViewInverted(_ view: UIView) -> Bool {
     var current: UIView? = view
     while let v = current, v !== sheetContainer {
@@ -468,6 +457,22 @@ public final class RNSBottomSheetHostingView: UIView {
       current = v.superview
     }
     return false
+  }
+
+  private func scrollView(containing location: CGPoint, in view: UIView) -> UIScrollView? {
+    for subview in view.subviews.reversed() {
+      let locationInSubview = view.convert(location, to: subview)
+      guard subview.bounds.contains(locationInSubview) else { continue }
+
+      if let found = scrollView(containing: locationInSubview, in: subview) {
+        return found
+      }
+
+      if let scrollView = subview as? UIScrollView, isVerticallyScrollable(scrollView) {
+        return scrollView
+      }
+    }
+    return nil
   }
 
   public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -479,6 +484,13 @@ public final class RNSBottomSheetHostingView: UIView {
     let draggable = detentSpecs.enumerated().filter { !$0.element.programmatic }
     guard draggable.count > 1 else { return false }
 
+    if disableScrollableNegotiation {
+      let locationInContainer = panGesture.location(in: sheetContainer)
+      if scrollView(containing: locationInContainer, in: sheetContainer) != nil {
+        return false
+      }
+    }
+
     let maxDraggableIndex = draggable.last?.offset ?? 0
     // Below max: allow drag in either direction to reach other detents.
     guard targetIndex >= maxDraggableIndex else { return true }
@@ -488,9 +500,10 @@ public final class RNSBottomSheetHostingView: UIView {
       return false
     }
 
-    guard let scrollView = firstScrollView(in: sheetContainer) else { return true }
-    let locationInScroll = panGesture.location(in: scrollView)
-    guard scrollView.bounds.contains(locationInScroll) else { return true }
+    let locationInContainer = panGesture.location(in: sheetContainer)
+    guard let scrollView = scrollView(containing: locationInContainer, in: sheetContainer) else {
+      return true
+    }
     let inverted = isViewInverted(scrollView)
     if inverted {
       let maxOffsetY = scrollView.contentSize.height - scrollView.bounds.height + scrollView.adjustedContentInset.bottom

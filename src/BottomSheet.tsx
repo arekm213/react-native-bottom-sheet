@@ -19,6 +19,7 @@ export interface BottomSheetProps {
   onSettle?: (index: number) => void;
   onPositionChange?: (position: number) => void;
   modal?: boolean;
+  disableScrollableNegotiation?: boolean;
   scrimColor?: string;
 }
 
@@ -32,6 +33,7 @@ export const BottomSheet = ({
   onSettle,
   onPositionChange,
   modal = false,
+  disableScrollableNegotiation = false,
   scrimColor,
 }: BottomSheetProps) => {
   const { height: windowHeight } = useWindowDimensions();
@@ -101,6 +103,7 @@ export const BottomSheet = ({
           index={index}
           animateIn={animateIn}
           modal={modal}
+          disableScrollableNegotiation={disableScrollableNegotiation}
           scrimColor={scrimColor}
           onIndexChange={handleIndexChange}
           onSettle={handleSettle}

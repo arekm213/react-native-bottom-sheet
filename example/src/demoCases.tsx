@@ -24,6 +24,7 @@ export type CaseKey =
   | 'modal-flat-list'
   | 'inline-detents'
   | 'inline-flat-list'
+  | 'disable-scrollable-negotiation'
   | 'dynamic-detents';
 
 export type DemoCase = {
@@ -215,6 +216,68 @@ export const InlineFlatListScreen = () => {
   );
 };
 
+export const DisableScrollableNegotiationScreen = () => {
+  const [index, setIndex] = useState(0);
+
+  return (
+    <DemoScreen
+      title="Disable scrollable negotiation"
+      sheet={
+        <BottomSheet
+          detents={[
+            0,
+            SHEET_HEADER_HEIGHT +
+              LIST_ITEM_HEIGHT * INLINE_FLATLIST_PREVIEW_ITEMS,
+            'content',
+          ]}
+          index={index}
+          onIndexChange={setIndex}
+          disableScrollableNegotiation
+        >
+          <SheetBackground style={{ flex: 1 }}>
+            <SheetHeader
+              title="Disable scrollable negotiation"
+              onClose={() => setIndex(0)}
+            />
+            <View
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                gap: 6,
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '600' }}>
+                Gestures that start in the list stay with the list.
+              </Text>
+              <Text style={{ fontSize: 14, lineHeight: 20, color: '#555' }}>
+                Try dragging on the rows when the list is already at the top or
+                bottom. The sheet should not take over. Drag on the header to
+                move the sheet instead.
+              </Text>
+            </View>
+            <FlatList
+              data={DATA}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              renderItem={({ item, index: itemIndex }) => (
+                <ListRow item={item} index={itemIndex} />
+              )}
+            />
+          </SheetBackground>
+        </BottomSheet>
+      }
+    >
+      <View style={{ gap: 12 }}>
+        <Button title="Open at preview detent" onPress={() => setIndex(1)} />
+        <Button title="Expand to content" onPress={() => setIndex(2)} />
+        <Button title="Collapse" onPress={() => setIndex(0)} />
+      </View>
+    </DemoScreen>
+  );
+};
+
 export const DynamicDetentsScreen = () => {
   const [index, setIndex] = useState(0);
   const [middleDetent, setMiddleDetent] = useState(200);
@@ -322,6 +385,13 @@ export const DEMO_CASES: DemoCase[] = [
     title: 'Inline with FlatList',
     description: 'Inline sheet with FlatList content and preview detent.',
     href: '/inline-flat-list',
+  },
+  {
+    key: 'disable-scrollable-negotiation',
+    title: 'Disable scrollable negotiation',
+    description:
+      'Inline sheet showing that list gestures stay with the touched scrollable.',
+    href: '/disable-scrollable-negotiation',
   },
   {
     key: 'dynamic-detents',

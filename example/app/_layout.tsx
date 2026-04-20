@@ -34,6 +34,13 @@ export default function RootLayout() {
             options={{ title: 'Inline with FlatList', headerShown: false }}
           />
           <Stack.Screen
+            name="disable-scrollable-negotiation"
+            options={{
+              title: 'Disable scrollable negotiation',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
             name="dynamic-detents"
             options={{ title: 'Dynamic detent updates', headerShown: false }}
           />

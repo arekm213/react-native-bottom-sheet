@@ -131,6 +131,11 @@ class BottomSheetViewManager :
     view.modal = modal
   }
 
+  @ReactProp(name = "disableScrollableNegotiation")
+  override fun setDisableScrollableNegotiation(view: BottomSheetView, value: Boolean) {
+    view.disableScrollableNegotiation = value
+  }
+
   @ReactProp(name = "scrimColor", customType = "Color")
   override fun setScrimColor(view: BottomSheetView, scrimColor: Int?) {
     view.setScrimColor(scrimColor)
