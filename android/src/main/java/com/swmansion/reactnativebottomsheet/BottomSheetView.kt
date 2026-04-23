@@ -76,6 +76,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   private var lastTouchY = 0f
   private var activePointerId = MotionEvent.INVALID_POINTER_ID
   private var scrimPressed = false
+  private var scrimTouchActive = false
   private var scrimColor = Color.TRANSPARENT
   private var scrimProgress = 0f
   private var maxDetentHeight = Float.NaN
@@ -459,7 +460,9 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
         initialTouchX = ev.x
         initialTouchY = ev.y
         lastTouchY = ev.y
+        activePointerId = ev.getPointerId(0)
         scrimPressed = true
+        scrimTouchActive = true
         return true
       }
       return false
@@ -508,13 +511,14 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
         initialTouchY = 0f
         activePointerId = MotionEvent.INVALID_POINTER_ID
         scrimPressed = false
+        scrimTouchActive = false
       }
     }
     return false
   }
 
   override fun onTouchEvent(event: MotionEvent): Boolean {
-    if (scrimPressed) {
+    if (scrimTouchActive) {
       when (event.actionMasked) {
         MotionEvent.ACTION_MOVE -> {
           val sheetTop = sheetContainer.top + sheetContainer.translationY
@@ -525,14 +529,22 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
         }
         MotionEvent.ACTION_UP -> {
           val closeIndex = closedIndex
+          val shouldDismiss = scrimPressed && isScrimVisible()
           scrimPressed = false
-          if (closeIndex != null && isScrimVisible()) {
+          scrimTouchActive = false
+          activePointerId = MotionEvent.INVALID_POINTER_ID
+          if (shouldDismiss && closeIndex != null) {
             snapToIndex(closeIndex, 0f)
           }
           return true
         }
         MotionEvent.ACTION_CANCEL -> {
           scrimPressed = false
+          scrimTouchActive = false
+          activePointerId = MotionEvent.INVALID_POINTER_ID
+          return true
+        }
+        MotionEvent.ACTION_POINTER_UP -> {
           return true
         }
       }
@@ -680,6 +692,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
     lastTouchY = 0f
     activePointerId = MotionEvent.INVALID_POINTER_ID
     scrimPressed = false
+    scrimTouchActive = false
     sheetContainer.translationY = 0f
     scrimProgress = 0f
     sheetContainer.removeAllViews()
