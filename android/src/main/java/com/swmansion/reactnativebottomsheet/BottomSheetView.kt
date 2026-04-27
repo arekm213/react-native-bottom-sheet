@@ -83,6 +83,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   private var scrimTouchActive = false
   private var scrimColor = Color.TRANSPARENT
   private var scrimProgress = 0f
+  private var suppressScrimForClosingTarget = false
   private var maxDetentHeight = Float.NaN
   private var contentHeightMarker: View? = null
 
@@ -288,6 +289,10 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
 
       if (hasLaidOut && !isPanning) {
         targetIndex = targetIndex.coerceIn(0, detentSpecs.size - 1)
+        if (activeAnimation != null && isTargetingClosedDetent) {
+          suppressScrimForClosingTarget = true
+          hideScrim()
+        }
         if (activeAnimation != null) {
           val currentTy = sheetContainer.translationY
           val shouldEmitSettle = activeAnimationEmitsSettle
@@ -364,6 +369,9 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   private val firstNonZeroDetentHeight: Float
     get() = detentSpecs.firstOrNull { it.height > 0f }?.height ?: 0f
 
+  private val isTargetingClosedDetent: Boolean
+    get() = closedIndex?.let { targetIndex == it } == true
+
   private val draggableMinTy: Float
     get() {
       val highestIndex = detentSpecs.indices.lastOrNull { !detentSpecs[it].programmatic } ?: 0
@@ -438,6 +446,9 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   ) {
     if (index < 0 || index >= detentSpecs.size) return
     targetIndex = index
+    if (!isTargetingClosedDetent) {
+      suppressScrimForClosingTarget = false
+    }
 
     val targetTy = translationY(index)
     activeAnimationEmitsSettle = emitSettle
@@ -458,9 +469,14 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
             return@addEndListener
           }
           stopChoreographer()
-          emitPosition()
           activeAnimation = null
           activeAnimationEmitsSettle = false
+          suppressScrimForClosingTarget = false
+          if (closedIndex == index) {
+            sheetContainer.translationY = translationY(index)
+            hideScrim()
+          }
+          emitPosition()
           updateInteractionState()
           if (emitIndexChange) listener?.onIndexChange(index)
           if (emitSettle) listener?.onSettle(index)
@@ -741,6 +757,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
     scrimTouchActive = false
     sheetContainer.translationY = 0f
     scrimProgress = 0f
+    suppressScrimForClosingTarget = false
     sheetContainer.removeAllViews()
     stateWrapper = null
     lastShadowOffsetY = Float.NaN
@@ -756,15 +773,20 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
     // When settled at the closed detent, dynamic content updates can briefly
     // produce stale non-zero positions. Keep scrim hidden in this state.
     if (
-      closedIndex != null && targetIndex == closedIndex && activeAnimation == null && !isPanning
+      (isTargetingClosedDetent && activeAnimation == null && !isPanning) ||
+        (suppressScrimForClosingTarget && isTargetingClosedDetent)
     ) {
-      scrimProgress = 0f
-      invalidate()
+      hideScrim()
       return
     }
 
     val threshold = firstNonZeroDetentHeight
     scrimProgress = if (threshold <= 0f) 0f else (position / threshold).coerceIn(0f, 1f)
+    invalidate()
+  }
+
+  private fun hideScrim() {
+    scrimProgress = 0f
     invalidate()
   }
 
