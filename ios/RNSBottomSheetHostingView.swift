@@ -127,10 +127,21 @@ public final class RNSBottomSheetHostingView: UIView {
     sheetContainer.center = CGPoint(x: bounds.width / 2, y: bounds.height - maxHeight / 2)
 
     if !hasLaidOut && !detentSpecs.isEmpty {
-      hasLaidOut = true
       let indexToApply = pendingIndex ?? targetIndex
+      let clampedIndex = max(0, min(detentSpecs.count - 1, indexToApply))
+
+      if animateIn && isInvalidContentDetentTarget(clampedIndex) {
+        targetIndex = clampedIndex
+        pendingIndex = clampedIndex
+        let closedTy = maximumResolvedDetentHeight ?? bounds.height
+        sheetContainer.transform = CGAffineTransform(translationX: 0, y: closedTy)
+        emitPosition()
+        return
+      }
+
+      hasLaidOut = true
       pendingIndex = nil
-      targetIndex = max(0, min(detentSpecs.count - 1, indexToApply))
+      targetIndex = clampedIndex
 
       if animateIn {
         let closedTy = maximumResolvedDetentHeight ?? bounds.height
@@ -529,7 +540,7 @@ public final class RNSBottomSheetHostingView: UIView {
 
   private func resolveDetentSpecs() -> [DetentSpec] {
     let maxHeight = resolvedMaxDetentHeight
-    let contentHeight = currentContentHeight.map { min($0, maxHeight) } ?? maxHeight
+    let contentHeight = validContentHeight.map { min($0, maxHeight) } ?? maxHeight
     return rawDetentSpecs.map { spec in
       let height: CGFloat
       switch spec.kind {
@@ -544,6 +555,11 @@ public final class RNSBottomSheetHostingView: UIView {
 
   private func refreshDetentsFromLayout() {
     refreshContentHeightMarker()
+    if hasLaidOut, isInvalidContentDetentTarget(targetIndex) {
+      updateScrim()
+      return
+    }
+
     let resolvedDetents = resolveDetentSpecs()
     guard resolvedDetents != detentSpecs else {
       updateScrim()
@@ -597,6 +613,25 @@ public final class RNSBottomSheetHostingView: UIView {
   private var currentContentHeight: CGFloat? {
     guard let marker = contentHeightMarker else { return nil }
     return marker.frame.minY.isFinite ? marker.frame.minY : nil
+  }
+
+  private var validContentHeight: CGFloat? {
+    guard let height = currentContentHeight, height.isFinite, height > 0 else {
+      return nil
+    }
+    return height
+  }
+
+  private func isInvalidContentDetentTarget(_ index: Int) -> Bool {
+    guard rawDetentSpecs.indices.contains(index) else {
+      return false
+    }
+    switch rawDetentSpecs[index].kind {
+    case .points:
+      return false
+    case .content:
+      return validContentHeight == nil
+    }
   }
 }
 

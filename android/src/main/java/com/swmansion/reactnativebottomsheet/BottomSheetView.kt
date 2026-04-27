@@ -157,10 +157,21 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
     layoutSheetContainer(w, h)
 
     if (!hasLaidOut && detentSpecs.isNotEmpty()) {
-      hasLaidOut = true
       val indexToApply = pendingIndex ?: targetIndex
+      val clampedIndex = indexToApply.coerceIn(0, detentSpecs.size - 1)
+
+      if (animateIn && isInvalidContentDetentTarget(clampedIndex)) {
+        targetIndex = clampedIndex
+        pendingIndex = clampedIndex
+        val closedTy = detentSpecs.maxOfOrNull { it.height } ?: h.toFloat()
+        sheetContainer.translationY = closedTy
+        emitPosition()
+        return
+      }
+
+      hasLaidOut = true
       pendingIndex = null
-      targetIndex = indexToApply.coerceIn(0, detentSpecs.size - 1)
+      targetIndex = clampedIndex
 
       if (animateIn) {
         val closedTy = detentSpecs.maxOfOrNull { it.height } ?: h.toFloat()
@@ -248,7 +259,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
 
   private fun resolveDetentSpecs(): List<DetentSpec> {
     val maxHeight = resolvedMaxDetentHeight()
-    val contentHeight = currentContentHeight().takeIf { it.isFinite() && it > 0f } ?: maxHeight
+    val contentHeight = validContentHeight().takeIf { it.isFinite() } ?: maxHeight
     return rawDetentSpecs.map { spec ->
       val height =
         when (spec.kind) {
@@ -260,6 +271,11 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   }
 
   private fun refreshDetentsFromLayout() {
+    if (hasLaidOut && isInvalidContentDetentTarget(targetIndex)) {
+      updateScrim()
+      return
+    }
+
     val resolvedDetents = resolveDetentSpecs()
     if (resolvedDetents == detentSpecs) {
       updateScrim()
@@ -303,6 +319,15 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   private fun currentContentHeight(): Float {
     val marker = contentHeightMarker ?: return Float.NaN
     return marker.top.toFloat()
+  }
+
+  private fun validContentHeight(): Float {
+    return currentContentHeight().takeIf { it.isFinite() && it > 0f } ?: Float.NaN
+  }
+
+  private fun isInvalidContentDetentTarget(index: Int): Boolean {
+    return rawDetentSpecs.getOrNull(index)?.kind == DetentKind.CONTENT &&
+      !validContentHeight().isFinite()
   }
 
   private fun refreshContentHeightMarker() {
