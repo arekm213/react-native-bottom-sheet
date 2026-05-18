@@ -292,12 +292,15 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
       return
     }
 
+    val previousMaxHeight = detentSpecs.maxOfOrNull { it.height } ?: resolvedMaxDetentHeight()
     detentSpecs = resolvedDetents
     if (width > 0 && height > 0 && detentSpecs.isNotEmpty()) {
       layoutSheetContainer(width, height)
 
       if (hasLaidOut && !isPanning) {
         targetIndex = targetIndex.coerceIn(0, detentSpecs.size - 1)
+        val newMaxHeight = detentSpecs.maxOfOrNull { it.height } ?: resolvedMaxDetentHeight()
+        val targetTy = translationY(targetIndex)
         if (activeAnimation != null && isTargetingClosedDetent) {
           suppressScrimForClosingTarget = true
           hideScrim()
@@ -309,17 +312,26 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
           activeAnimation = null
           activeAnimationEmitsSettle = false
           stopChoreographer()
-          sheetContainer.translationY =
-            currentTy.coerceIn(0f, detentSpecs.maxOfOrNull { it.height } ?: currentTy)
+          // Re-anchor the in-flight position to the new container height so the
+          // sheet surface keeps the same on-screen height across the resize.
+          val visibleHeight = previousMaxHeight - currentTy
+          sheetContainer.translationY = (newMaxHeight - visibleHeight).coerceIn(0f, newMaxHeight)
           emitPosition()
           snapToIndex(targetIndex, 0f, emitIndexChange = false, emitSettle = shouldEmitSettle)
         } else {
-          val targetTy = translationY(targetIndex)
-          val currentTy = sheetContainer.translationY
-          if (abs(targetTy - currentTy) <= 0.5f) {
+          val currentVisibleHeight = previousMaxHeight - sheetContainer.translationY
+          val targetHeight = detentSpecs.getOrNull(targetIndex)?.height ?: 0f
+          if (targetHeight <= currentVisibleHeight + 0.5f) {
+            // Content shrank (or is unchanged): snap immediately. Animating here
+            // would expose blank space below the shrunken content.
             sheetContainer.translationY = targetTy
             emitPosition()
           } else {
+            // Content grew: re-anchor at the current visible height, then animate
+            // up to the taller detent.
+            sheetContainer.translationY =
+              (newMaxHeight - currentVisibleHeight).coerceIn(0f, newMaxHeight)
+            emitPosition()
             snapToIndex(targetIndex, 0f, emitIndexChange = false, emitSettle = false)
           }
         }

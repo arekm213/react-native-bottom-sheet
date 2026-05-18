@@ -60,7 +60,8 @@ public final class RNSBottomSheetHostingView: UIView {
   private var hasLaidOut = false
   private var isPanning = false
   private var isContentInteractionDisabled = false
-  private weak var contentHeightMarker: UIView?
+  private var contentHeightMarker: UIView?
+  private static var markerObservationContext = 0
 
   override public init(frame: CGRect) {
     super.init(frame: frame)
@@ -237,7 +238,7 @@ public final class RNSBottomSheetHostingView: UIView {
     hasLaidOut = false
     isPanning = false
     setContentInteractionEnabled(true)
-    contentHeightMarker = nil
+    stopObservingContentHeightMarker()
     sheetContainer.transform = .identity
     scrimView.alpha = 0
     scrimView.isHidden = true
@@ -576,6 +577,7 @@ public final class RNSBottomSheetHostingView: UIView {
       return
     }
 
+    let previousMaxHeight = maximumResolvedDetentHeight ?? resolvedMaxDetentHeight
     detentSpecs = resolvedDetents
 
     guard bounds.width > 0, bounds.height > 0, !detentSpecs.isEmpty else {
@@ -584,6 +586,8 @@ public final class RNSBottomSheetHostingView: UIView {
 
     if hasLaidOut, !isPanning {
       targetIndex = max(0, min(detentSpecs.count - 1, targetIndex))
+      let newMaxHeight = maximumResolvedDetentHeight ?? resolvedMaxDetentHeight
+      let targetTy = translationY(for: targetIndex)
 
       if let animator = activeAnimator {
         stopDisplayLink()
@@ -592,19 +596,27 @@ public final class RNSBottomSheetHostingView: UIView {
         animator.stopAnimation(true)
         activeAnimator = nil
         activeAnimatorEmitsSettle = false
-        sheetContainer.transform = CGAffineTransform(
-          translationX: 0,
-          y: min(max(visualTy, 0), maximumResolvedDetentHeight ?? visualTy)
-        )
+        // Re-anchor the in-flight position to the new container height so the
+        // sheet surface keeps the same on-screen height across the resize.
+        let visibleHeight = previousMaxHeight - visualTy
+        let reanchoredTy = min(max(newMaxHeight - visibleHeight, 0), newMaxHeight)
+        sheetContainer.transform = CGAffineTransform(translationX: 0, y: reanchoredTy)
         emitPosition()
         snapToIndex(targetIndex, velocity: 0, emitIndexChange: false, emitSettle: shouldEmitSettle)
       } else {
-        let targetTy = translationY(for: targetIndex)
-        let currentTy = currentTranslationY
-        if abs(targetTy - currentTy) <= 0.5 {
+        let currentVisibleHeight = previousMaxHeight - currentTranslationY
+        let targetHeight = detent(at: targetIndex).height
+        if targetHeight <= currentVisibleHeight + 0.5 {
+          // Content shrank (or is unchanged): snap immediately. Animating here
+          // would expose blank space below the shrunken content.
           sheetContainer.transform = CGAffineTransform(translationX: 0, y: targetTy)
           emitPosition()
         } else {
+          // Content grew: re-anchor at the current visible height, then animate
+          // up to the taller detent.
+          let startTy = min(max(newMaxHeight - currentVisibleHeight, 0), newMaxHeight)
+          sheetContainer.transform = CGAffineTransform(translationX: 0, y: startTy)
+          emitPosition()
           snapToIndex(targetIndex, velocity: 0, emitIndexChange: false, emitSettle: false)
         }
       }
@@ -612,7 +624,50 @@ public final class RNSBottomSheetHostingView: UIView {
   }
 
   private func refreshContentHeightMarker() {
-    contentHeightMarker = findContentHeightMarker()
+    let marker = findContentHeightMarker()
+    guard marker !== contentHeightMarker else { return }
+    stopObservingContentHeightMarker()
+    contentHeightMarker = marker
+    if let marker {
+      // The marker's frame is updated by React Native when content above it
+      // resizes; observe its layer so we can re-resolve detents immediately
+      // instead of waiting for an unrelated layout pass. This is the iOS
+      // counterpart to Android's OnLayoutChangeListener on the marker.
+      marker.layer.addObserver(
+        self, forKeyPath: "position", options: [], context: &Self.markerObservationContext
+      )
+      marker.layer.addObserver(
+        self, forKeyPath: "bounds", options: [], context: &Self.markerObservationContext
+      )
+    }
+  }
+
+  private func stopObservingContentHeightMarker() {
+    guard let marker = contentHeightMarker else { return }
+    marker.layer.removeObserver(
+      self, forKeyPath: "position", context: &Self.markerObservationContext
+    )
+    marker.layer.removeObserver(
+      self, forKeyPath: "bounds", context: &Self.markerObservationContext
+    )
+    contentHeightMarker = nil
+  }
+
+  override public func observeValue(
+    forKeyPath keyPath: String?,
+    of object: Any?,
+    change: [NSKeyValueChangeKey: Any]?,
+    context: UnsafeMutableRawPointer?
+  ) {
+    if context == &Self.markerObservationContext {
+      refreshDetentsFromLayout()
+    } else {
+      super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+    }
+  }
+
+  deinit {
+    stopObservingContentHeightMarker()
   }
 
   private func findContentHeightMarker() -> UIView? {

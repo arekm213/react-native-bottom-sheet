@@ -26,7 +26,8 @@ export type CaseKey =
   | 'inline-flat-list'
   | 'invalid-detents'
   | 'disable-scrollable-negotiation'
-  | 'dynamic-detents';
+  | 'dynamic-detents'
+  | 'dynamic-content-height';
 
 export type DemoCase = {
   key: CaseKey;
@@ -421,6 +422,81 @@ export const DynamicDetentsScreen = () => {
   );
 };
 
+const SHORT_CONTENT_HEIGHT = 160;
+const TALL_CONTENT_HEIGHT = 440;
+
+export const DynamicContentHeightScreen = () => {
+  const [index, setIndex] = useState(0);
+  const [contentHeight, setContentHeight] = useState(SHORT_CONTENT_HEIGHT);
+  const [position, setPosition] = useState(0);
+
+  return (
+    <DemoScreen
+      title="Dynamic content height"
+      sheet={
+        <BottomSheet
+          detents={[0, 'content']}
+          index={index}
+          onIndexChange={setIndex}
+          onPositionChange={setPosition}
+        >
+          <SheetBackground>
+            <SheetHeader
+              title="Dynamic content height"
+              onClose={() => setIndex(0)}
+            />
+            <View
+              style={{
+                height: contentHeight,
+                paddingHorizontal: 20,
+                justifyContent: 'center',
+                gap: 12,
+              }}
+            >
+              <Text style={{ fontSize: 18, fontWeight: '600' }}>
+                Resize the content while the sheet is open
+              </Text>
+              <Text style={{ fontSize: 15, lineHeight: 22, color: '#555' }}>
+                With the sheet at the content detent, tap the buttons above to
+                change the content height. Growing should animate; shrinking
+                should snap immediately so no blank space appears.
+              </Text>
+            </View>
+          </SheetBackground>
+        </BottomSheet>
+      }
+    >
+      <View style={{ gap: 12 }}>
+        <Button title="Open sheet" onPress={() => setIndex(1)} />
+        <Button title="Collapse" onPress={() => setIndex(0)} />
+      </View>
+      <View style={{ gap: 12 }}>
+        <Button
+          title="Short content"
+          onPress={() => setContentHeight(SHORT_CONTENT_HEIGHT)}
+        />
+        <Button
+          title="Tall content"
+          onPress={() => setContentHeight(TALL_CONTENT_HEIGHT)}
+        />
+      </View>
+      <View
+        style={{
+          padding: 16,
+          borderRadius: 16,
+          backgroundColor: '#f3f3f3',
+          gap: 6,
+        }}
+      >
+        <Text style={{ fontWeight: '600' }}>Current state</Text>
+        <Text>content height: {contentHeight}pt</Text>
+        <Text>index: {index}</Text>
+        <Text>position: {position.toFixed(0)}pt</Text>
+      </View>
+    </DemoScreen>
+  );
+};
+
 export const DEMO_CASES: DemoCase[] = [
   {
     key: 'basic-modal',
@@ -471,5 +547,12 @@ export const DEMO_CASES: DemoCase[] = [
     description:
       'Toggle the middle detent while index 1 is active to verify animated updates.',
     href: '/dynamic-detents',
+  },
+  {
+    key: 'dynamic-content-height',
+    title: 'Dynamic content height',
+    description:
+      'Resize the content at the content detent: grow animates, shrink snaps.',
+    href: '/dynamic-content-height',
   },
 ];

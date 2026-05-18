@@ -48,6 +48,10 @@ export default function RootLayout() {
             name="dynamic-detents"
             options={{ title: 'Dynamic detent updates', headerShown: false }}
           />
+          <Stack.Screen
+            name="dynamic-content-height"
+            options={{ title: 'Dynamic content height', headerShown: false }}
+          />
         </Stack>
       </BottomSheetProvider>
     </SafeAreaProvider>
