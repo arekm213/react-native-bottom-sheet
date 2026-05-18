@@ -501,52 +501,55 @@ export const DynamicContentHeightScreen = () => {
     <DemoScreen
       title="Dynamic content height"
       sheet={
-        <BottomSheet
+        <ModalBottomSheet
           detents={[0, 'content']}
           index={index}
           onIndexChange={setIndex}
           onPositionChange={setPosition}
+          scrimColor={MODAL_SCRIM_COLOR}
         >
           <SheetBackground>
             <SheetHeader
               title="Dynamic content height"
               onClose={() => setIndex(0)}
             />
-            <View
-              style={{
-                height: contentHeight,
-                paddingHorizontal: 20,
-                justifyContent: 'center',
-                gap: 12,
-              }}
-            >
+            <View style={{ padding: 20, gap: 12 }}>
               <Text style={{ fontSize: 18, fontWeight: '600' }}>
                 Resize the content while the sheet is open
               </Text>
               <Text style={{ fontSize: 15, lineHeight: 22, color: '#555' }}>
-                With the sheet at the content detent, tap the buttons above to
-                change the content height. Growing should animate; shrinking
-                should snap immediately so no blank space appears.
+                Tap the buttons below to change the content height. Growing
+                should animate; shrinking should snap immediately so no blank
+                space appears. The scrim should stay fully opaque throughout —
+                it must not dip while the sheet re-anchors.
               </Text>
+              <Button
+                title="Short content"
+                onPress={() => setContentHeight(SHORT_CONTENT_HEIGHT)}
+              />
+              <Button
+                title="Tall content"
+                onPress={() => setContentHeight(TALL_CONTENT_HEIGHT)}
+              />
+              <View
+                style={{
+                  height: contentHeight,
+                  borderRadius: 16,
+                  backgroundColor: '#dbe7ff',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontWeight: '600', color: '#345' }}>
+                  Resizable content · {contentHeight}pt
+                </Text>
+              </View>
             </View>
           </SheetBackground>
-        </BottomSheet>
+        </ModalBottomSheet>
       }
     >
-      <View style={{ gap: 12 }}>
-        <Button title="Open sheet" onPress={() => setIndex(1)} />
-        <Button title="Collapse" onPress={() => setIndex(0)} />
-      </View>
-      <View style={{ gap: 12 }}>
-        <Button
-          title="Short content"
-          onPress={() => setContentHeight(SHORT_CONTENT_HEIGHT)}
-        />
-        <Button
-          title="Tall content"
-          onPress={() => setContentHeight(TALL_CONTENT_HEIGHT)}
-        />
-      </View>
+      <Button title="Open sheet" onPress={() => setIndex(1)} />
       <View
         style={{
           padding: 16,
@@ -626,7 +629,7 @@ export const DEMO_CASES: DemoCase[] = [
     key: 'dynamic-content-height',
     title: 'Dynamic content height',
     description:
-      'Resize the content at the content detent: grow animates, shrink snaps.',
+      'Resize the content of a modal sheet: grow animates, shrink snaps, scrim stays opaque.',
     href: '/dynamic-content-height',
   },
 ];

@@ -55,6 +55,7 @@ public final class RNSBottomSheetHostingView: UIView {
   private var panGesture: UIPanGestureRecognizer!
   private var activeAnimator: UIViewPropertyAnimator?
   private var activeAnimatorEmitsSettle = false
+  private var scrimPinnedFull = false
   private var displayLink: CADisplayLink?
   private var pendingIndex: Int?
   private var hasLaidOut = false
@@ -364,10 +365,14 @@ public final class RNSBottomSheetHostingView: UIView {
     _ index: Int,
     velocity: CGFloat,
     emitIndexChange: Bool = true,
-    emitSettle: Bool = true
+    emitSettle: Bool = true,
+    preserveScrimPin: Bool = false
   ) {
     guard index >= 0, index < detentSpecs.count else { return }
     targetIndex = index
+    if !preserveScrimPin {
+      scrimPinnedFull = false
+    }
 
     let currentTy = sheetContainer.transform.ty
     let targetTy = translationY(for: index)
@@ -391,6 +396,7 @@ public final class RNSBottomSheetHostingView: UIView {
       self.emitPosition()
       self.activeAnimator = nil
       self.activeAnimatorEmitsSettle = false
+      self.scrimPinnedFull = false
       self.setContentInteractionEnabled(true)
       self.updateInteractionState()
       if emitIndexChange {
@@ -411,6 +417,7 @@ public final class RNSBottomSheetHostingView: UIView {
     switch gesture.state {
     case .began:
       isPanning = true
+      scrimPinnedFull = false
       panStartingIndex = targetIndex
       sheetContainer.endEditing(true)
       setContentInteractionEnabled(false)
@@ -609,6 +616,12 @@ public final class RNSBottomSheetHostingView: UIView {
     }
 
     let previousMaxHeight = maximumResolvedDetentHeight ?? resolvedMaxDetentHeight
+    // Whether the scrim is currently fully opaque, i.e. the sheet is settled at
+    // or above the first non-zero detent. If so, a detent resize must not dip
+    // the scrim while the sheet re-anchors to the new geometry.
+    let wasScrimFull = modal
+      && firstNonZeroDetentHeight > 0
+      && currentSheetHeight + 0.5 >= firstNonZeroDetentHeight
     detentSpecs = resolvedDetents
 
     guard bounds.width > 0, bounds.height > 0, !detentSpecs.isEmpty else {
@@ -632,8 +645,15 @@ public final class RNSBottomSheetHostingView: UIView {
         let visibleHeight = previousMaxHeight - visualTy
         let reanchoredTy = min(max(newMaxHeight - visibleHeight, 0), newMaxHeight)
         sheetContainer.transform = CGAffineTransform(translationX: 0, y: reanchoredTy)
+        scrimPinnedFull = scrimPinnedFull || wasScrimFull
         emitPosition()
-        snapToIndex(targetIndex, velocity: 0, emitIndexChange: false, emitSettle: shouldEmitSettle)
+        snapToIndex(
+          targetIndex,
+          velocity: 0,
+          emitIndexChange: false,
+          emitSettle: shouldEmitSettle,
+          preserveScrimPin: true
+        )
       } else {
         let currentVisibleHeight = previousMaxHeight - currentTranslationY
         let targetHeight = detent(at: targetIndex).height
@@ -647,8 +667,15 @@ public final class RNSBottomSheetHostingView: UIView {
           // up to the taller detent.
           let startTy = min(max(newMaxHeight - currentVisibleHeight, 0), newMaxHeight)
           sheetContainer.transform = CGAffineTransform(translationX: 0, y: startTy)
+          scrimPinnedFull = scrimPinnedFull || wasScrimFull
           emitPosition()
-          snapToIndex(targetIndex, velocity: 0, emitIndexChange: false, emitSettle: false)
+          snapToIndex(
+            targetIndex,
+            velocity: 0,
+            emitIndexChange: false,
+            emitSettle: false,
+            preserveScrimPin: true
+          )
         }
       }
     }
@@ -783,6 +810,15 @@ private extension RNSBottomSheetHostingView {
     {
       scrimView.alpha = 0
       scrimView.isHidden = true
+      return
+    }
+
+    // While the sheet is fully open and only its content/detent geometry is
+    // resizing, the position momentarily lags the grown detent height. Keep the
+    // scrim at full opacity instead of dipping it until the re-anchor settles.
+    if scrimPinnedFull {
+      scrimView.alpha = 1
+      scrimView.isHidden = false
       return
     }
 

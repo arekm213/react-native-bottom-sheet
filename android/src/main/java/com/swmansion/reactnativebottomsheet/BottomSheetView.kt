@@ -85,6 +85,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
   private var scrimColor = Color.TRANSPARENT
   private var scrimProgress = 0f
   private var suppressScrimForClosingTarget = false
+  private var scrimPinnedFull = false
   private var maxDetentHeight = Float.NaN
   private var contentHeightMarker: View? = null
 
@@ -294,6 +295,13 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
     }
 
     val previousMaxHeight = detentSpecs.maxOfOrNull { it.height } ?: resolvedMaxDetentHeight()
+    // Whether the scrim is currently fully opaque, i.e. the sheet is settled at
+    // or above the first non-zero detent. If so, a detent resize must not dip
+    // the scrim while the sheet re-anchors to the new geometry.
+    val wasScrimFull =
+      modal &&
+        firstNonZeroDetentHeight > 0f &&
+        currentSheetHeight() + 0.5f >= firstNonZeroDetentHeight
     detentSpecs = resolvedDetents
     if (width > 0 && height > 0 && detentSpecs.isNotEmpty()) {
       layoutSheetContainer(width, height)
@@ -317,8 +325,15 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
           // sheet surface keeps the same on-screen height across the resize.
           val visibleHeight = previousMaxHeight - currentTy
           sheetContainer.translationY = (newMaxHeight - visibleHeight).coerceIn(0f, newMaxHeight)
+          scrimPinnedFull = scrimPinnedFull || wasScrimFull
           emitPosition()
-          snapToIndex(targetIndex, 0f, emitIndexChange = false, emitSettle = shouldEmitSettle)
+          snapToIndex(
+            targetIndex,
+            0f,
+            emitIndexChange = false,
+            emitSettle = shouldEmitSettle,
+            preserveScrimPin = true,
+          )
         } else {
           val currentVisibleHeight = previousMaxHeight - sheetContainer.translationY
           val targetHeight = detentSpecs.getOrNull(targetIndex)?.height ?: 0f
@@ -332,8 +347,15 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
             // up to the taller detent.
             sheetContainer.translationY =
               (newMaxHeight - currentVisibleHeight).coerceIn(0f, newMaxHeight)
+            scrimPinnedFull = scrimPinnedFull || wasScrimFull
             emitPosition()
-            snapToIndex(targetIndex, 0f, emitIndexChange = false, emitSettle = false)
+            snapToIndex(
+              targetIndex,
+              0f,
+              emitIndexChange = false,
+              emitSettle = false,
+              preserveScrimPin = true,
+            )
           }
         }
       }
@@ -474,11 +496,15 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
     velocity: Float,
     emitIndexChange: Boolean = true,
     emitSettle: Boolean = true,
+    preserveScrimPin: Boolean = false,
   ) {
     if (index < 0 || index >= detentSpecs.size) return
     targetIndex = index
     if (!isTargetingClosedDetent) {
       suppressScrimForClosingTarget = false
+    }
+    if (!preserveScrimPin) {
+      scrimPinnedFull = false
     }
 
     val targetTy = translationY(index)
@@ -504,6 +530,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
           activeAnimation = null
           activeAnimationEmitsSettle = false
           suppressScrimForClosingTarget = false
+          scrimPinnedFull = false
           if (closedIndex == index) {
             sheetContainer.translationY = translationY(index)
             hideScrim()
@@ -693,6 +720,7 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
 
   private fun beginPan(event: MotionEvent) {
     isPanning = true
+    scrimPinnedFull = false
     panStartingIndex = targetIndex
     activePointerId = event.getPointerId(0)
     lastTouchY = event.y
@@ -815,6 +843,15 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
         (suppressScrimForClosingTarget && isTargetingClosedDetent)
     ) {
       hideScrim()
+      return
+    }
+
+    // While the sheet is fully open and only its content/detent geometry is
+    // resizing, the position momentarily lags the grown detent height. Keep the
+    // scrim at full opacity instead of dipping it until the re-anchor settles.
+    if (scrimPinnedFull) {
+      scrimProgress = 1f
+      invalidate()
       return
     }
 
