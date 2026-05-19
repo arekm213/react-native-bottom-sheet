@@ -3,6 +3,7 @@
 #import "../common/cpp/react/renderer/components/ReactNativeBottomSheetSpec/BottomSheetStateHelper.h"
 #import "../common/cpp/react/renderer/components/ReactNativeBottomSheetSpec/ComponentDescriptors.h"
 
+#import <React/RCTAssert.h>
 #import <React/RCTConversions.h>
 #import <React/RCTFabricComponentsPlugins.h>
 #import <react/renderer/components/ReactNativeBottomSheetSpec/EventEmitters.h>
@@ -136,6 +137,11 @@ using namespace facebook::react;
   if (_sheetState) {
     updateBottomSheetContentOffsetY(_sheetState, contentOffsetY);
   }
+}
+
+- (void)bottomSheetView:(BottomSheetContentView *)view didReportError:(NSString *)message
+{
+  RCTFatal([NSError errorWithDomain:RCTErrorDomain code:0 userInfo:@{NSLocalizedDescriptionKey : message}]);
 }
 
 - (void)prepareForRecycle

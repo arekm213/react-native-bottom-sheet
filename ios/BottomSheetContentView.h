@@ -8,6 +8,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)bottomSheetView:(BottomSheetContentView *)view didChangeIndex:(NSInteger)index;
 - (void)bottomSheetView:(BottomSheetContentView *)view didSettle:(NSInteger)index;
 - (void)bottomSheetView:(BottomSheetContentView *)view didChangePosition:(CGFloat)position;
+- (void)bottomSheetView:(BottomSheetContentView *)view didReportError:(NSString *)message;
 @end
 
 @interface BottomSheetContentView : UIView

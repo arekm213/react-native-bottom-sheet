@@ -115,6 +115,11 @@
   [self.delegate bottomSheetView:self didChangePosition:position];
 }
 
+- (void)bottomSheetHostingView:(RNSBottomSheetHostingView *)view didReportError:(NSString *)message
+{
+  [self.delegate bottomSheetView:self didReportError:message];
+}
+
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
   CGPoint implPoint = [self convertPoint:point toView:_impl];

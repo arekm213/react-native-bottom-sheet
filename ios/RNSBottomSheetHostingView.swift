@@ -4,6 +4,7 @@ import UIKit
   func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didChangeIndex index: Int)
   func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didSettle index: Int)
   func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didChangePosition position: CGFloat)
+  func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didReportError message: String)
 }
 
 private struct DetentSpec: Equatable {
@@ -60,6 +61,7 @@ public final class RNSBottomSheetHostingView: UIView {
   private var pendingIndex: Int?
   private var hasLaidOut = false
   private var isPanning = false
+  private var lastReportedInvalidDetentMessage: String?
   private var panStartingIndex: Int?
   private var isContentInteractionDisabled = false
   private var contentHeightMarker: UIView?
@@ -578,28 +580,35 @@ public final class RNSBottomSheetHostingView: UIView {
     detentSpecs.map(\.height).max()
   }
 
-  private func resolveDetentSpecs() -> [DetentSpec] {
+  private func resolveDetentSpecs() -> [DetentSpec]? {
     let maxHeight = resolvedMaxDetentHeight
     let measuredContentHeight = maxHeight > 0 ? validContentHeight.map { min($0, maxHeight) } : nil
     let contentHeight = measuredContentHeight ?? maxHeight
-    return rawDetentSpecs.enumerated().map { index, spec in
+    var resolvedDetents: [DetentSpec] = []
+    resolvedDetents.reserveCapacity(rawDetentSpecs.count)
+
+    for (index, spec) in rawDetentSpecs.enumerated() {
       let height: CGFloat
       switch spec.kind {
       case .points:
         if measuredContentHeight != nil, spec.value > contentHeight {
-          NSException(
-            name: NSExceptionName.invalidArgumentException,
-            reason:
-            "Invalid bottom sheet detent at index \(index): fixed detent \(spec.value) exceeds measured content height \(contentHeight).",
-            userInfo: nil
-          ).raise()
+          let message =
+            "Invalid bottom sheet detent at index \(index): fixed detent \(spec.value) exceeds measured content height \(contentHeight)."
+          if lastReportedInvalidDetentMessage != message {
+            lastReportedInvalidDetentMessage = message
+            eventDelegate?.bottomSheetHostingView(self, didReportError: message)
+          }
+          return nil
         }
         height = spec.value
       case .content:
         height = contentHeight
       }
-      return DetentSpec(height: min(max(0, height), maxHeight), programmatic: spec.programmatic)
+      resolvedDetents.append(DetentSpec(height: min(max(0, height), maxHeight), programmatic: spec.programmatic))
     }
+
+    lastReportedInvalidDetentMessage = nil
+    return resolvedDetents
   }
 
   private func refreshDetentsFromLayout() {
@@ -609,7 +618,10 @@ public final class RNSBottomSheetHostingView: UIView {
       return
     }
 
-    let resolvedDetents = resolveDetentSpecs()
+    guard let resolvedDetents = resolveDetentSpecs() else {
+      updateScrim()
+      return
+    }
     guard resolvedDetents != detentSpecs else {
       updateScrim()
       return
