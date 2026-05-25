@@ -6,17 +6,17 @@
 #import <ReactNativeBottomSheet/ReactNativeBottomSheet-Swift.h>
 #endif
 
-@interface BottomSheetContentView () <RNSBottomSheetHostingViewDelegate>
+@interface BottomSheetContentView () <BottomSheetHostingViewDelegate>
 @end
 
 @implementation BottomSheetContentView {
-  RNSBottomSheetHostingView *_impl;
+  BottomSheetHostingView *_impl;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
 {
   if (self = [super initWithFrame:frame]) {
-    _impl = [[RNSBottomSheetHostingView alloc] initWithFrame:self.bounds];
+    _impl = [[BottomSheetHostingView alloc] initWithFrame:self.bounds];
     _impl.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _impl.eventDelegate = self;
     [self addSubview:_impl];
@@ -100,22 +100,22 @@
   [_impl resetSheetState];
 }
 
-- (void)bottomSheetHostingView:(RNSBottomSheetHostingView *)view didChangeIndex:(NSInteger)index
+- (void)bottomSheetHostingView:(BottomSheetHostingView *)view didChangeIndex:(NSInteger)index
 {
   [self.delegate bottomSheetView:self didChangeIndex:index];
 }
 
-- (void)bottomSheetHostingView:(RNSBottomSheetHostingView *)view didSettle:(NSInteger)index
+- (void)bottomSheetHostingView:(BottomSheetHostingView *)view didSettle:(NSInteger)index
 {
   [self.delegate bottomSheetView:self didSettle:index];
 }
 
-- (void)bottomSheetHostingView:(RNSBottomSheetHostingView *)view didChangePosition:(CGFloat)position
+- (void)bottomSheetHostingView:(BottomSheetHostingView *)view didChangePosition:(CGFloat)position
 {
   [self.delegate bottomSheetView:self didChangePosition:position];
 }
 
-- (void)bottomSheetHostingView:(RNSBottomSheetHostingView *)view didReportError:(NSString *)message
+- (void)bottomSheetHostingView:(BottomSheetHostingView *)view didReportError:(NSString *)message
 {
   [self.delegate bottomSheetView:self didReportError:message];
 }

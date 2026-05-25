@@ -1,10 +1,10 @@
 import UIKit
 
-@objc public protocol RNSBottomSheetHostingViewDelegate: AnyObject {
-  func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didChangeIndex index: Int)
-  func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didSettle index: Int)
-  func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didChangePosition position: CGFloat)
-  func bottomSheetHostingView(_ view: RNSBottomSheetHostingView, didReportError message: String)
+@objc public protocol BottomSheetHostingViewDelegate: AnyObject {
+  func bottomSheetHostingView(_ view: BottomSheetHostingView, didChangeIndex index: Int)
+  func bottomSheetHostingView(_ view: BottomSheetHostingView, didSettle index: Int)
+  func bottomSheetHostingView(_ view: BottomSheetHostingView, didChangePosition position: CGFloat)
+  func bottomSheetHostingView(_ view: BottomSheetHostingView, didReportError message: String)
 }
 
 private struct DetentSpec: Equatable {
@@ -24,8 +24,8 @@ private struct RawDetentSpec {
 }
 
 @objcMembers
-public final class RNSBottomSheetHostingView: UIView {
-  public weak var eventDelegate: RNSBottomSheetHostingViewDelegate?
+public final class BottomSheetHostingView: UIView {
+  public weak var eventDelegate: BottomSheetHostingViewDelegate?
   public var modal: Bool = false {
     didSet { updateScrim() }
   }
@@ -770,7 +770,7 @@ public final class RNSBottomSheetHostingView: UIView {
   }
 }
 
-extension RNSBottomSheetHostingView: UIGestureRecognizerDelegate {
+extension BottomSheetHostingView: UIGestureRecognizerDelegate {
   public func gestureRecognizer(
     _ gestureRecognizer: UIGestureRecognizer,
     shouldBeRequiredToFailBy other: UIGestureRecognizer
@@ -787,7 +787,7 @@ extension RNSBottomSheetHostingView: UIGestureRecognizerDelegate {
   }
 }
 
-private extension RNSBottomSheetHostingView {
+private extension BottomSheetHostingView {
   var currentTranslationY: CGFloat {
     if activeAnimator != nil, let presentation = sheetContainer.layer.presentation() {
       return presentation.affineTransform().ty
