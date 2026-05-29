@@ -18,6 +18,45 @@ React&nbsp;Native.
 - Programmatic&zwj;-&zwj;only detents for snap points unreachable
   by&nbsp;dragging.
 
+## How it compares
+
+React Native already has strong bottom&zwj;-&zwj;sheet options, but they make
+different tradeoffs. React Native Bottom Sheet gives you composable React
+Native primitives backed by native sheet mechanics: You compose the surface in
+React, while the sheet host, gestures, snapping, and scroll negotiation run in
+native&nbsp;code.
+
+[`@gorhom/bottom-sheet`](https://gorhom.dev/react-native-bottom-sheet) is the
+closest match in day&zwj;-&zwj;to&zwj;-&zwj;day functionality: configurable detents,
+dynamic sizing, scrollable coordination, inline sheets, and modal presentation.
+The main difference is the implementation model. React Native Bottom Sheet moves
+the sheet host, gestures, snapping, and scroll negotiation into native code, so
+heavy React rendering and busy JS work are less likely to affect drag and snap
+performance. It also does not require Reanimated or React Native
+Gesture Handler. Because scroll coordination is native, regular React Native
+scrollables work inside the sheet without
+bottom&zwj;-&zwj;sheet&zwj;-&zwj;specific list components or wrapper factories.
+
+[Expo UI](https://docs.expo.dev/versions/latest/sdk/ui) sheets and native
+modal&zwj;-&zwj;sheet libraries such as
+[True Sheet](https://sheet.lodev09.com) lean into platform presentation APIs.
+That is a good fit when you want a system&zwj;-&zwj;style presented sheet, but it
+also means the platform decides more of the behavior. React Native Bottom Sheet
+is built as a lower&zwj;-&zwj;level sheet primitive instead: The same native
+implementation powers both persistent inline sheets and modal sheets, your
+children provide the complete sheet surface, and detents can include
+app&zwj;-&zwj;level behavior such as programmatic&zwj;-&zwj;only snap&nbsp;points.
+
+That difference also matters for layering. A platform&zwj;-&zwj;presented sheet can
+disable dimming and allow background interaction, but it is still drawn as a
+presented native sheet over the React Native view hierarchy. `BottomSheet` is
+actually inline: It renders in your screen’s React Native hierarchy and can be
+layered alongside nearby content. When you do need a modal, `ModalBottomSheet`
+is rendered through `BottomSheetProvider`’s portal rather than through a
+separate native window, so global UI such as toasts, menus, floating controls,
+or debug overlays can be arranged above or below it by where you place them
+relative to the&nbsp;provider.
+
 ## Getting started
 
 1. Install React Native Bottom&nbsp;Sheet:
