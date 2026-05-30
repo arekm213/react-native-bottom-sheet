@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DEMO_CASES } from '../src/demoCases';
-import { CaseButton } from '../src/demoShared';
+import { CaseRow } from '../src/demoShared';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -12,7 +12,6 @@ export default function HomeScreen() {
     <View
       style={{
         flex: 1,
-        paddingHorizontal: 20,
         backgroundColor: 'white',
       }}
     >
@@ -20,13 +19,16 @@ export default function HomeScreen() {
         data={DEMO_CASES}
         keyExtractor={(item) => item.key}
         contentContainerStyle={{
-          gap: 12,
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 24,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
         }}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 1, backgroundColor: '#eee' }} />
+        )}
         renderItem={({ item }) => (
-          <CaseButton
+          <CaseRow
             title={item.title}
+            isError={item.throws}
             onPress={() => router.push(item.href)}
           />
         )}

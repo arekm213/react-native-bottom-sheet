@@ -37,6 +37,7 @@ export type DemoCase = {
   title: string;
   description: string;
   href: `/${CaseKey}`;
+  throws?: boolean;
 };
 
 export const BasicModalScreen = () => {
@@ -658,6 +659,7 @@ export const DEMO_CASES: DemoCase[] = [
     title: 'Invalid detents',
     description: 'Inline sheet with a fixed detent taller than its content.',
     href: '/invalid-detents',
+    throws: true,
   },
   {
     key: 'disable-scrollable-negotiation',

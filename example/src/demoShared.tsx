@@ -94,23 +94,17 @@ export const SheetHeader = ({
   </View>
 );
 
-export const CaseButton = ({
+export const CaseRow = ({
   title,
   onPress,
+  isError,
 }: {
   title: string;
   onPress: () => void;
+  isError?: boolean;
 }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={{
-      paddingHorizontal: 18,
-      paddingVertical: 14,
-      borderRadius: 16,
-      backgroundColor: '#1f1f1f',
-    }}
-  >
-    <Text style={{ fontSize: 18, fontWeight: '600', color: 'white' }}>
+  <TouchableOpacity onPress={onPress} style={{ padding: 16 }}>
+    <Text style={{ fontSize: 17, color: isError ? '#d11' : '#1f1f1f' }}>
       {title}
     </Text>
   </TouchableOpacity>
