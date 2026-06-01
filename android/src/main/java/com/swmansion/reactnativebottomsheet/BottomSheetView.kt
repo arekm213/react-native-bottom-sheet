@@ -574,13 +574,16 @@ class BottomSheetView(context: Context) : ReactViewGroup(context) {
           }
           emitPosition()
           updateInteractionState()
-          if (emitIndexChange) listener?.onIndexChange(index)
           if (emitSettle) listener?.onSettle(index)
         }
       }
 
     activeAnimation = spring
     startChoreographer()
+    // Report the index change as soon as the snap is committed, not when it
+    // finishes: targetIndex is already set, and a programmatic snap's start is
+    // known to the caller. onSettle remains the signal for movement end.
+    if (emitIndexChange) listener?.onIndexChange(index)
     spring.start()
   }
 

@@ -36,7 +36,12 @@ export interface BottomSheetProps {
   index: number;
   /** Whether the sheet should animate in on first layout. */
   animateIn?: boolean;
-  /** Called after a user-driven snap changes the active index. */
+  /**
+   * Called when a user-driven snap is initiated: the moment a drag commits to a
+   * detent, before the animation settles. Does not fire for programmatic `index`
+   * changes; you already know when you make those. Use it to keep your controlled
+   * `index` state in sync. For the end of any movement, use `onSettle`.
+   */
   onIndexChange?: (index: number) => void;
   /** Called when a snap animation settles, including programmatic changes. */
   onSettle?: (index: number) => void;

@@ -63,6 +63,10 @@ export default function RootLayout() {
             options={{ title: 'Dynamic content height', headerShown: false }}
           />
           <Stack.Screen
+            name="snap-callbacks"
+            options={{ title: 'Snap lifecycle callbacks', headerShown: false }}
+          />
+          <Stack.Screen
             name="no-animate-in"
             options={{ title: 'No animate in', headerShown: false }}
           />

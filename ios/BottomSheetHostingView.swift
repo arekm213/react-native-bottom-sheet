@@ -438,12 +438,15 @@ public final class BottomSheetHostingView: UIView {
       self.scrimPinnedFull = false
       self.setContentInteractionEnabled(true)
       self.updateInteractionState()
-      if emitIndexChange {
-        self.eventDelegate?.bottomSheetHostingView(self, didChangeIndex: index)
-      }
       if emitSettle {
         self.eventDelegate?.bottomSheetHostingView(self, didSettle: index)
       }
+    }
+    // Report the index change as soon as the snap is committed, not when it
+    // finishes: `targetIndex` is already set, and a programmatic snap's start is
+    // known to the caller. `onSettle` remains the signal for movement end.
+    if emitIndexChange {
+      eventDelegate?.bottomSheetHostingView(self, didChangeIndex: index)
     }
     animator.startAnimation()
     activeAnimator = animator

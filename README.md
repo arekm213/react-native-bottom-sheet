@@ -84,8 +84,8 @@ relative to the&nbsp;provider.
 The library provides two components: `BottomSheet` (inline) and
 `ModalBottomSheet` (modal). Both render their children as the sheet content,
 with a `surface` prop for the background behind it, and are controlled via
-`detents`, `index`, and&nbsp;`onIndexChange`. Use `onSettle` for
-post&zwj;-&zwj;snap&nbsp;observability.
+`detents`, `index`, and&nbsp;`onIndexChange`. Use `onSettle` to observe when the
+sheet finishes&nbsp;moving.
 
 ### Inline
 
@@ -248,12 +248,15 @@ content, never on the&nbsp;surface:
 The `index` prop is a zero&zwj;-&zwj;based index into the `detents` array.
 `onIndexChange` and `onSettle` have different&nbsp;responsibilities:
 
-- `onIndexChange` is for user&zwj;-&zwj;triggered snaps. Treat it as the signal
-  to update your controlled `index`&nbsp;state.
+- `onIndexChange` fires when a user&zwj;-&zwj;triggered snap is _initiated_: the
+  moment a drag commits to a detent, before the animation settles. It does not
+  fire for programmatic `index` changes; you already know when you make those.
+  Treat it as the signal to update your controlled `index`&nbsp;state.
 - `onSettle` fires when the sheet finishes snapping to a detent, regardless of
-  whether that snap was user&zwj;-&zwj;triggered or programmatic. Use it for
-  observability or side effects (analytics, reacting to collapse, etc.), not for
-  updating the controlled `index`&nbsp;state.
+  whether that snap was user&zwj;-&zwj;triggered or programmatic. It is the
+  signal for the _end_ of any movement. Use it for observability or side effects
+  (analytics, reacting to collapse, etc.), not for updating the controlled
+  `index`&nbsp;state.
 
 ```tsx
 const [index, setIndex] = useState(0);
@@ -263,10 +266,10 @@ const [index, setIndex] = useState(0);
 <BottomSheet // Or `ModalBottomSheet`.
   detents={[0, 300, 'content']} // Collapsed, 300 px, content height.
   index={index}
-  onIndexChange={setIndex} // Keep controlled state in sync.
+  onIndexChange={setIndex} // Fires when a drag commits; keep state in sync.
   surface={/* ... */}
   onSettle={(nextIndex) => {
-    if (nextIndex === 0) console.log('Sheet collapsed.');
+    if (nextIndex === 0) console.log('Sheet finished collapsing.');
   }}
 >
   {/* ... */}
