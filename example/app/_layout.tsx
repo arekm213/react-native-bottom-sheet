@@ -20,6 +20,14 @@ export default function RootLayout() {
             options={{ title: 'Basic modal', headerShown: false }}
           />
           <Stack.Screen
+            name="native-overlay-modal"
+            options={{
+              title: 'Native overlay modal',
+              presentation: 'modal',
+              headerShown: true,
+            }}
+          />
+          <Stack.Screen
             name="modal-scroll-view"
             options={{ title: 'Modal with ScrollView', headerShown: false }}
           />

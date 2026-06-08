@@ -17,6 +17,7 @@ export interface NativeProps extends ViewProps {
   index: CodegenTypes.Int32;
   animateIn?: CodegenTypes.WithDefault<boolean, true>;
   modal: boolean;
+  nativeOverlay?: boolean;
   disableScrollableNegotiation?: boolean;
   scrimColor?: ColorValue;
   scrimOpacities?: ReadonlyArray<CodegenTypes.Double>;

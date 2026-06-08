@@ -175,6 +175,29 @@ To keep the scrim deepening across every detent, pass one value per detent:
 </ModalBottomSheet>
 ```
 
+#### Native overlay
+
+By default `ModalBottomSheet` renders through `BottomSheetProvider`’s portal.
+That portal lives in your React tree, so a sheet opened from a screen presented
+as a native modal (for example, a React Navigation native-stack screen with
+`presentation: 'modal'`) is confined to that screen and cannot cover&nbsp;it.
+
+Set `nativeOverlay` to present the sheet in a native overlay above
+everything—including native modal screens—so it always covers the full window.
+On iOS, a `UIWindow`-attached container is used; on Android, a full-screen,
+edge-to-edge, transparent&nbsp;dialog.
+
+```tsx
+<ModalBottomSheet
+  nativeOverlay
+  index={index}
+  onIndexChange={setIndex}
+  surface={/* ... */}
+>
+  {/* ... */}
+</ModalBottomSheet>
+```
+
 ### Surface
 
 Provide the sheet’s background through the `surface` prop. The library renders
@@ -307,8 +330,8 @@ top of the sheet from&nbsp;`event.nativeEvent.position`. The same event also
 carries `event.nativeEvent.index`—the fractional detent index in
 `0..(detents.length - 1)` (`0` at the shortest detent, `1` at the next, and so
 on, interpolated in between)—the continuous counterpart of `onIndexChange`,
-handy for driving a backdrop or per-detent animation without knowing the
-sheet’s height.
+handy for driving a backdrop or per-detent animation without knowing the sheet’s
+height.
 
 ```tsx
 <BottomSheet // Or `ModalBottomSheet`.

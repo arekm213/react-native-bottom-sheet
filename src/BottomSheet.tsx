@@ -89,19 +89,28 @@ export interface BottomSheetProps {
   wrapNativeView?: (
     component: ComponentType<NativeProps>
   ) => ComponentType<NativeProps>;
-  /** Internal flag used by `ModalBottomSheet`. */
-  modal?: boolean;
   /**
    * Escape hatch that disables sheet/list gesture negotiation.
    * If a gesture starts inside a nested scrollable, that scrollable keeps it
    * even when it cannot scroll any further.
    */
   disableScrollableNegotiation?: boolean;
+}
+
+type ModalOnlyBottomSheetProps = {
+  /** Internal flag used by `ModalBottomSheet`. */
+  modal?: boolean;
+  /**
+   * Internal flag used by `ModalBottomSheet`. When set, the sheet is presented
+   * in a native overlay above everything (including native modal screens)
+   * instead of the `BottomSheetProvider` portal.
+   */
+  nativeOverlay?: boolean;
   /** Scrim color used by `ModalBottomSheet`. */
   scrimColor?: string;
   /**
-   * Scrim opacities per detent, indexed to match `detents`. Each value in 0–1
-   * scales the scrim color’s alpha at the detent of the same index, and the
+   * Scrim opacities per detent, indexed to match `detents`. Each value in 0-1
+   * scales the scrim color's alpha at the detent of the same index, and the
    * opacity is linearly interpolated as the sheet is dragged between detents.
    * A shorter array than `detents` reuses its last value for any remaining
    * detents.
@@ -109,29 +118,34 @@ export interface BottomSheetProps {
    * The default maps each detent to 0 when it is closed and 1 otherwise,
    * so the scrim is transparent at any closed detent and fully opaque at every
    * open one; e.g., `[0, 'content']` defaults to `[0, 1]`, and all-open detents
-   * default to a constant opaque scrim. Pass one value per detent—e.g.,
-   * `[0, 0.5, 1]`—to keep the scrim deepening across every detent.
+   * default to a constant opaque scrim. Pass one value per detent, e.g.
+   * `[0, 0.5, 1]`, to keep the scrim deepening across every detent.
    */
   scrimOpacities?: number[];
-}
+};
+
+export type BottomSheetInternalProps = BottomSheetProps &
+  ModalOnlyBottomSheetProps;
 
 /** Native bottom sheet that renders inline within the current screen layout. */
-export const BottomSheet = ({
-  children,
-  surface,
-  style,
-  detents = [0, 'content'],
-  index,
-  animateIn = true,
-  onIndexChange,
-  onSettle,
-  onPositionChange,
-  wrapNativeView,
-  modal = false,
-  disableScrollableNegotiation = false,
-  scrimColor,
-  scrimOpacities,
-}: BottomSheetProps) => {
+export const BottomSheet = (props: BottomSheetProps) => {
+  const {
+    children,
+    surface,
+    style,
+    detents = [0, 'content'],
+    index,
+    animateIn = true,
+    onIndexChange,
+    onSettle,
+    onPositionChange,
+    wrapNativeView,
+    modal = false,
+    nativeOverlay = false,
+    disableScrollableNegotiation = false,
+    scrimColor,
+    scrimOpacities,
+  } = props as BottomSheetInternalProps;
   const { height: windowHeight } = useSafeAreaFrame();
   const insets = useSafeAreaInsets();
   const maxHeight = windowHeight - insets.top;
@@ -165,6 +179,7 @@ export const BottomSheet = ({
   const resolvedScrimOpacity =
     scrimOpacities ??
     detents.map((detent) => (resolveDetentValue(detent) === 0 ? 0 : 1));
+  const usesNativeOverlay = modal && nativeOverlay;
   const handleIndexChange = (event: { nativeEvent: { index: number } }) => {
     onIndexChange?.(event.nativeEvent.index);
   };
@@ -213,6 +228,7 @@ export const BottomSheet = ({
           index={index}
           animateIn={animateIn}
           modal={modal}
+          nativeOverlay={usesNativeOverlay}
           disableScrollableNegotiation={disableScrollableNegotiation}
           scrimColor={scrimColor}
           scrimOpacities={resolvedScrimOpacity}
@@ -239,6 +255,12 @@ export const BottomSheet = ({
   );
 
   if (modal) {
+    // In native-overlay mode the sheet is rendered inline; the native layer
+    // reparents it into a full-screen overlay above everything (including
+    // native modal screens), so it bypasses the provider portal entirely.
+    if (usesNativeOverlay) {
+      return sheet;
+    }
     return <Portal>{sheet}</Portal>;
   }
 

@@ -1,5 +1,6 @@
 export type CaseKey =
   | 'basic-modal'
+  | 'native-overlay-modal'
   | 'modal-scroll-view'
   | 'modal-flat-list'
   | 'scrim-opacity'
@@ -29,6 +30,13 @@ export const DEMO_CASES: DemoCase[] = [
     title: 'Basic modal',
     description: 'Simple modal bottom sheet with a fixed-height body.',
     href: '/basic-modal',
+  },
+  {
+    key: 'native-overlay-modal',
+    title: 'Native overlay modal',
+    description:
+      'Modal sheet with nativeOverlay opened from a native-stack modal screen; it covers the full screen above the native modal header.',
+    href: '/native-overlay-modal',
   },
   {
     key: 'modal-scroll-view',

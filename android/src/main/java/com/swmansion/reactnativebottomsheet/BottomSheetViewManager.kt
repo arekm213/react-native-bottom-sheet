@@ -59,7 +59,7 @@ class BottomSheetViewManager :
   private fun dispatchEvent(view: BottomSheetView, eventName: String, eventData: WritableMap) {
     val reactContext = UIManagerHelper.getReactContext(view)
     val surfaceId = UIManagerHelper.getSurfaceId(view)
-    UIManagerHelper.getEventDispatcherForReactTag(reactContext, view.id)
+    UIManagerHelper.getEventDispatcher(reactContext)
       ?.dispatchEvent(BottomSheetEvent(surfaceId, view.id, eventName, eventData))
   }
 
@@ -82,6 +82,7 @@ class BottomSheetViewManager :
     stateWrapper: StateWrapper?,
   ): Any? {
     view.stateWrapper = stateWrapper
+    view.eventDispatcher = UIManagerHelper.getEventDispatcher(UIManagerHelper.getReactContext(view))
     return null
   }
 
@@ -130,6 +131,11 @@ class BottomSheetViewManager :
   @ReactProp(name = "modal")
   override fun setModal(view: BottomSheetView, modal: Boolean) {
     view.modal = modal
+  }
+
+  @ReactProp(name = "nativeOverlay")
+  override fun setNativeOverlay(view: BottomSheetView, value: Boolean) {
+    view.setNativeOverlay(value)
   }
 
   @ReactProp(name = "disableScrollableNegotiation")

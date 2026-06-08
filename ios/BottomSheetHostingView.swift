@@ -350,6 +350,10 @@ public final class BottomSheetHostingView: UIView {
     return containerTop + ty
   }
 
+  public var isModalAccessibilityActive: Bool {
+    isScrimVisible
+  }
+
   private var isScrimVisible: Bool {
     modal && !scrimView.isHidden
   }

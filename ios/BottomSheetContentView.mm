@@ -90,6 +90,11 @@
   return _impl.currentContentOffsetY;
 }
 
+- (BOOL)isModalAccessibilityActive
+{
+  return _impl.isModalAccessibilityActive;
+}
+
 - (void)mountChildComponentView:(UIView *)childView atIndex:(NSInteger)index
 {
   [_impl mountChildComponentView:childView atIndex:index];
