@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Button, FlatList, StyleSheet, Switch, Text, View } from 'react-native';
 import { BottomSheet } from '@swmansion/react-native-bottom-sheet';
 
 import {
@@ -15,6 +15,7 @@ import {
 
 export const DisableScrollableNegotiationScreen = () => {
   const [index, setIndex] = useState(0);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   return (
     <DemoScreen
@@ -53,9 +54,24 @@ export const DisableScrollableNegotiationScreen = () => {
               bottom. The sheet should not take over. Drag on the header to move
               the sheet instead.
             </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+                paddingTop: 4,
+              }}
+            >
+              <Text style={{ fontSize: 15, color: '#333' }}>
+                List scrolling
+              </Text>
+              <Switch value={scrollEnabled} onValueChange={setScrollEnabled} />
+            </View>
           </View>
           <FlatList
             data={DATA}
+            scrollEnabled={scrollEnabled}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingBottom: 24 }}
             renderItem={({ item, index: itemIndex }) => (

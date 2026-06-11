@@ -620,6 +620,7 @@ public final class BottomSheetHostingView: UIView {
   }
 
   private func isVerticallyScrollable(_ scrollView: UIScrollView) -> Bool {
+    guard scrollView.isScrollEnabled else { return false }
     let verticalInset = scrollView.adjustedContentInset.top + scrollView.adjustedContentInset.bottom
     let visibleHeight = max(0, scrollView.bounds.height - verticalInset)
     return scrollView.alwaysBounceVertical || scrollView.contentSize.height > visibleHeight

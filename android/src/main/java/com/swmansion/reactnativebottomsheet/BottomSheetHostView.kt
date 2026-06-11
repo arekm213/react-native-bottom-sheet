@@ -825,10 +825,40 @@ class BottomSheetHostView(context: Context) : ReactViewGroup(context) {
       }
     }
 
-    if (view.canScrollVertically(1) || view.canScrollVertically(-1)) {
+    if (isVerticallyScrollable(view)) {
       return view
     }
     return null
+  }
+
+  private fun isVerticallyScrollable(view: View): Boolean {
+    if (!view.canScrollVertically(1) && !view.canScrollVertically(-1)) {
+      return false
+    }
+    return getReactScrollEnabled(view) != false
+  }
+
+  private fun getReactScrollEnabled(view: View): Boolean? {
+    val method =
+      try {
+        view.javaClass.getMethod("getScrollEnabled")
+      } catch (_: NoSuchMethodException) {
+        return null
+      }
+
+    if (
+      method.returnType != Boolean::class.javaPrimitiveType &&
+        method.returnType != Boolean::class.javaObjectType
+    ) {
+      return null
+    }
+
+    return try {
+      method.isAccessible = true
+      method.invoke(view) as? Boolean
+    } catch (_: Exception) {
+      null
+    }
   }
 
   private fun isViewInverted(view: View): Boolean {
