@@ -278,7 +278,9 @@ set&nbsp;`disableScrollableNegotiation`:
 Detents are the points to which the sheet snaps. Each detent is either a number
 (a fixed height in pixels) or `'content'` (the sheet’s content height, capped by
 the available screen height). The default detents are `[0, 'content']`. Pass
-detents in ascending order, from shortest to&nbsp;tallest.
+detents in ascending order, from shortest to&nbsp;tallest. Fixed detents can be
+taller than the measured content height, so `[0, 'content', 600]` lets a compact
+content-sized sheet expand to a larger&nbsp;surface.
 
 Sheet children are laid out in a flex container. For a full&zwj;-&zwj;height
 sheet, apply `flex: 1` to your content and use the `'content'`&nbsp;detent.

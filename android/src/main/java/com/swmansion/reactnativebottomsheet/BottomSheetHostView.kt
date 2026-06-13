@@ -293,20 +293,13 @@ class BottomSheetHostView(context: Context) : ReactViewGroup(context) {
     val maxHeight = resolvedMaxDetentHeight()
     val measuredContentHeight =
       validContentHeight().takeIf { maxHeight > 0f && it.isFinite() }?.coerceAtMost(maxHeight)
-    val contentHeight = measuredContentHeight ?: maxHeight
     var previousHeight: Float? = null
     return rawDetentSpecs.mapIndexed { index, spec ->
       val height =
         when (spec.kind) {
-          DetentKind.POINTS -> {
-            if (measuredContentHeight != null && spec.value > contentHeight) {
-              throw IllegalArgumentException(
-                "Invalid bottom sheet detent at index $index: fixed detent ${spec.value / density} exceeds measured content height ${contentHeight / density}."
-              )
-            }
-            spec.value
-          }
-          DetentKind.CONTENT -> contentHeight
+          DetentKind.POINTS -> spec.value
+          DetentKind.CONTENT ->
+            measuredContentHeight ?: unresolvedContentDetentHeight(index, maxHeight)
         }.coerceIn(0f, maxHeight)
       previousHeight?.let {
         if (height < it) {
@@ -318,6 +311,12 @@ class BottomSheetHostView(context: Context) : ReactViewGroup(context) {
       previousHeight = height
       DetentSpec(height = height, programmatic = spec.programmatic)
     }
+  }
+
+  private fun unresolvedContentDetentHeight(index: Int, maxHeight: Float): Float {
+    val nextPointHeight =
+      rawDetentSpecs.drop(index + 1).firstOrNull { it.kind == DetentKind.POINTS }?.value
+    return (nextPointHeight ?: maxHeight).coerceIn(0f, maxHeight)
   }
 
   private fun refreshDetentsFromLayout() {

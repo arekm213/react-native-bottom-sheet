@@ -7,6 +7,7 @@ export type CaseKey =
   | 'keyboard-aware-list'
   | 'scrim-opacity'
   | 'inline-detents'
+  | 'content-larger-detent'
   | 'inline-flat-list'
   | 'invalid-detents'
   | 'disable-scrollable-negotiation'
@@ -65,6 +66,11 @@ export const DEMO_CASES: DemoCase[] = [
     key: 'inline-detents',
     title: 'Inline with detents',
     href: '/inline-detents',
+  },
+  {
+    key: 'content-larger-detent',
+    title: 'Content plus larger detent',
+    href: '/content-larger-detent',
   },
   {
     key: 'inline-flat-list',

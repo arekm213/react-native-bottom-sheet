@@ -60,6 +60,13 @@ export default function RootLayout() {
               options={{ title: 'Inline with detents', headerShown: false }}
             />
             <Stack.Screen
+              name="content-larger-detent"
+              options={{
+                title: 'Content plus larger detent',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
               name="inline-flat-list"
               options={{ title: 'Inline with FlatList', headerShown: false }}
             />

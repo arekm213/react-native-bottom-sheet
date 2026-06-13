@@ -54,7 +54,9 @@ export interface BottomSheetProps {
   style?: StyleProp<ViewStyle>;
   /**
    * Snap points for the sheet, in ascending order by height. Defaults to
-   * `[0, 'content']`.
+   * `[0, 'content']`. Fixed detents may be taller than the measured content
+   * height, so `[0, 'content', 600]` is valid when the content is shorter than
+   * 600pt.
    */
   detents?: Detent[];
   /** Zero-based index into `detents`. */

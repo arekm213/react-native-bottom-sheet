@@ -709,7 +709,6 @@ public final class BottomSheetHostingView: UIView {
   private func resolveDetentSpecs() -> [DetentSpec]? {
     let maxHeight = resolvedMaxDetentHeight
     let measuredContentHeight = maxHeight > 0 ? validContentHeight.map { min($0, maxHeight) } : nil
-    let contentHeight = measuredContentHeight ?? maxHeight
     var resolvedDetents: [DetentSpec] = []
     resolvedDetents.reserveCapacity(rawDetentSpecs.count)
 
@@ -717,18 +716,10 @@ public final class BottomSheetHostingView: UIView {
       let height: CGFloat
       switch spec.kind {
       case .points:
-        if measuredContentHeight != nil, spec.value > contentHeight {
-          let message =
-            "Invalid bottom sheet detent at index \(index): fixed detent \(spec.value) exceeds measured content height \(contentHeight)."
-          if lastReportedInvalidDetentMessage != message {
-            lastReportedInvalidDetentMessage = message
-            eventDelegate?.bottomSheetHostingView(self, didReportError: message)
-          }
-          return nil
-        }
         height = spec.value
       case .content:
-        height = contentHeight
+        height =
+          measuredContentHeight ?? unresolvedContentDetentHeight(after: index, maxHeight: maxHeight)
       }
       let resolvedHeight = min(max(0, height), maxHeight)
       if let previous = resolvedDetents.last, resolvedHeight < previous.height {
@@ -745,6 +736,16 @@ public final class BottomSheetHostingView: UIView {
 
     lastReportedInvalidDetentMessage = nil
     return resolvedDetents
+  }
+
+  private func unresolvedContentDetentHeight(after index: Int, maxHeight: CGFloat) -> CGFloat {
+    guard index + 1 < rawDetentSpecs.count else {
+      return maxHeight
+    }
+    let nextPointHeight = rawDetentSpecs[(index + 1)...]
+      .first { $0.kind == .points }
+      .map(\.value)
+    return min(max(0, nextPointHeight ?? maxHeight), maxHeight)
   }
 
   private func refreshDetentsFromLayout() {
