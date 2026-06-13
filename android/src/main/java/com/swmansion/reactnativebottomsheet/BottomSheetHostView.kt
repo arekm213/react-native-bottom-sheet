@@ -542,6 +542,7 @@ class BottomSheetHostView(context: Context) : ReactViewGroup(context) {
     emitIndexChange: Boolean = true,
     emitSettle: Boolean = true,
     preserveScrimPin: Boolean = false,
+    animationBounds: ClosedFloatingPointRange<Float>? = null,
   ) {
     if (index < 0 || index >= detentSpecs.size) return
     targetIndex = index
@@ -553,9 +554,22 @@ class BottomSheetHostView(context: Context) : ReactViewGroup(context) {
     }
 
     val targetTy = translationY(index)
-    val currentTy = sheetContainer.translationY
     activeAnimationEmitsSettle = emitSettle
     activeAnimation?.cancel()
+
+    var currentTy = sheetContainer.translationY
+    if (animationBounds != null) {
+      val clampedTy = currentTy.coerceIn(animationBounds.start, animationBounds.endInclusive)
+      if (clampedTy != currentTy) {
+        sheetContainer.translationY = clampedTy
+        currentTy = clampedTy
+        emitPosition()
+      }
+    }
+
+    val minAnimationTy = animationBounds?.start ?: minOf(minDetentTranslationY, currentTy, targetTy)
+    val maxAnimationTy =
+      animationBounds?.endInclusive ?: maxOf(maxDetentTranslationY, currentTy, targetTy)
 
     val spring =
       SpringAnimation(sheetContainer, DynamicAnimation.TRANSLATION_Y, targetTy).apply {
@@ -564,8 +578,8 @@ class BottomSheetHostView(context: Context) : ReactViewGroup(context) {
             dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
             stiffness = SpringForce.STIFFNESS_MEDIUM
           }
-        setMinValue(minOf(minDetentTranslationY, currentTy, targetTy))
-        setMaxValue(maxOf(maxDetentTranslationY, currentTy, targetTy))
+        setMinValue(minAnimationTy)
+        setMaxValue(maxAnimationTy)
         setStartVelocity(velocity)
         // Forward the position on every frame of the settle. The listener fires
         // immediately after the spring writes `translationY`, so `emitPosition`
@@ -750,9 +764,11 @@ class BottomSheetHostView(context: Context) : ReactViewGroup(context) {
         velocityTracker = null
         val maxHeight = resolvedMaxDetentHeight()
         val currentHeight = maxHeight - sheetContainer.translationY
-        val index = bestSnapIndex(currentHeight, velocity, panStartingIndex)
+        val startingIndex = panStartingIndex
+        val dragRange = draggableRange(startingIndex)
+        val index = bestSnapIndex(currentHeight, velocity, startingIndex)
         panStartingIndex = null
-        snapToIndex(index, velocity)
+        snapToIndex(index, velocity, animationBounds = dragRange)
         return true
       }
       MotionEvent.ACTION_POINTER_UP -> {
