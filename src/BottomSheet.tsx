@@ -1,6 +1,6 @@
 import { useState, type ComponentType, type ReactNode } from 'react';
 import type { NativeSyntheticEvent, StyleProp, ViewStyle } from 'react-native';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
   useSafeAreaFrame,
   useSafeAreaInsets,
@@ -166,11 +166,12 @@ export const BottomSheet = (props: BottomSheetProps) => {
     scrimColor,
     scrimOpacities,
   } = props as BottomSheetInternalProps;
-  const { height: windowHeight } = useSafeAreaFrame();
+  const usesNativeOverlay = modal && nativeOverlay;
+  const { height: safeAreaFrameHeight } = useSafeAreaFrame();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const maxHeight = extendUnderStatusBar
-    ? windowHeight
-    : windowHeight - insets.top;
+  const hostHeight = usesNativeOverlay ? windowHeight : safeAreaFrameHeight;
+  const maxHeight = extendUnderStatusBar ? hostHeight : hostHeight - insets.top;
   const nativeDetents = detents.map((detent) => {
     const programmatic = isDetentProgrammatic(detent);
     const value = resolveDetentValue(detent);
@@ -200,7 +201,6 @@ export const BottomSheet = (props: BottomSheetProps) => {
   const resolvedScrimOpacity =
     scrimOpacities ??
     detents.map((detent) => (resolveDetentValue(detent) === 0 ? 0 : 1));
-  const usesNativeOverlay = modal && nativeOverlay;
   const handleIndexChange = (event: { nativeEvent: { index: number } }) => {
     onIndexChange?.(event.nativeEvent.index);
   };
@@ -235,12 +235,13 @@ export const BottomSheet = (props: BottomSheetProps) => {
             {
               position: 'absolute',
               left: 0,
-              right: 0,
+              right: usesNativeOverlay ? undefined : 0,
               bottom: 0,
               // The native host always spans the full height of its container.
               // Detents are still capped to `maxHeight`, so the sheet only
               // extends under the status bar when explicitly requested.
-              height: windowHeight,
+              height: hostHeight,
+              width: usesNativeOverlay ? windowWidth : undefined,
             },
             style,
           ]}
@@ -267,7 +268,14 @@ export const BottomSheet = (props: BottomSheetProps) => {
               {surface}
             </BottomSheetSurfaceNativeComponent>
           )}
-          <View collapsable={false} style={{ flex: 1, maxHeight }}>
+          <View
+            collapsable={false}
+            style={{
+              flex: 1,
+              maxHeight,
+              width: usesNativeOverlay ? windowWidth : undefined,
+            }}
+          >
             {children}
             <View collapsable={false} pointerEvents="none" />
           </View>

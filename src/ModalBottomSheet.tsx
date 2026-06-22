@@ -20,8 +20,8 @@ export interface ModalBottomSheetProps extends BottomSheetProps {
    * full-screen transparent dialog on Android) that floats above the modal.
    *
    * No `BottomSheetProvider` is required in this mode. The sheet sizes relative
-   * to its nearest full-size ancestor, so render it at the top level of a screen
-   * as you normally would.
+   * to the window, so it can be colocated with the trigger even when that trigger
+   * lives inside a narrow or otherwise non-full-size view.
    *
    * @default false
    */
