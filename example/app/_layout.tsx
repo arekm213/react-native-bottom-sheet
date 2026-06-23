@@ -75,6 +75,13 @@ export default function RootLayout() {
               options={{ title: 'Inline with FlatList', headerShown: false }}
             />
             <Stack.Screen
+              name="inline-nested-flat-list"
+              options={{
+                title: 'Inline with nested FlatLists',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
               name="invalid-detents"
               options={{ title: 'Invalid detents', headerShown: false }}
             />

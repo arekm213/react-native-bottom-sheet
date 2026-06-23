@@ -10,6 +10,7 @@ export type CaseKey =
   | 'under-status-bar'
   | 'content-larger-detent'
   | 'inline-flat-list'
+  | 'inline-nested-flat-list'
   | 'invalid-detents'
   | 'disable-scrollable-negotiation'
   | 'programmatic-detent-drag'
@@ -82,6 +83,11 @@ export const DEMO_CASES: DemoCase[] = [
     key: 'inline-flat-list',
     title: 'Inline with FlatList',
     href: '/inline-flat-list',
+  },
+  {
+    key: 'inline-nested-flat-list',
+    title: 'Inline with nested FlatLists',
+    href: '/inline-nested-flat-list',
   },
   {
     key: 'invalid-detents',
