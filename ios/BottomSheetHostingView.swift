@@ -91,6 +91,11 @@ public final class BottomSheetHostingView: UIView {
   private var panStartingIndex: Int?
   private var activeDragRange: (minTy: CGFloat, maxTy: CGFloat)?
   private var activeDragDetentSpecs: [DetentSpec]?
+  // The scroller this drag scrolls once the sheet maxes out. Bound at gesture
+  // start so it stays valid even as the finger drifts up over the header.
+  private weak var dragScroller: UIScrollView?
+  private var dragScrollerInverted = false
+  private let edgeTolerance: CGFloat = 0.5
   private var isContentInteractionDisabled = false
   private var contentHeightMarker: UIView?
   private weak var surfaceView: UIView?
@@ -625,6 +630,8 @@ public final class BottomSheetHostingView: UIView {
     case .began:
       isPanning = true
       scrimPinnedFull = false
+      dragScroller = scrollView(containing: panGesture.location(in: sheetContainer), in: sheetContainer)
+      dragScrollerInverted = dragScroller.map { isInverted($0) } ?? false
       panStartingIndex = targetIndex
       activeDragDetentSpecs = detentSpecs
       activeDragRange = snapshotDraggableRange(including: targetIndex, in: detentSpecs)
@@ -643,18 +650,23 @@ public final class BottomSheetHostingView: UIView {
       let delta = gesture.translation(in: self).y
       gesture.setTranslation(.zero, in: self)
       let range = activeDragRange ?? draggableRange(including: panStartingIndex)
-      let minTy = range.minTy
-      let maxTy = range.maxTy
-      let newTy = max(minTy, min(maxTy, sheetContainer.transform.ty + delta))
-      sheetContainer.transform = CGAffineTransform(translationX: 0, y: newTy)
+      if delta < 0 {
+        liftSheetThenScrollContent(by: -delta, within: range)
+      } else if delta > 0 {
+        scrollContentThenCollapseSheet(by: delta, within: range)
+      }
       emitPosition()
 
     case .ended:
       isPanning = false
       let velocity = gesture.velocity(in: self).y
+      // Don't let a residual downward velocity collapse the sheet mid-scroll.
+      let stayOpen = handoffContentIsScrolled()
       let currentHeight = maxHeight - sheetContainer.transform.ty
       let index =
-        activeDragDetentSpecs.flatMap {
+        stayOpen
+        ? maxHeightSnapIndex(including: panStartingIndex)
+        : activeDragDetentSpecs.flatMap {
           $0.count == detentSpecs.count ? $0 : nil
         }.map {
           snapshotBestSnapIndex(
@@ -671,15 +683,19 @@ public final class BottomSheetHostingView: UIView {
       panStartingIndex = nil
       activeDragRange = nil
       activeDragDetentSpecs = nil
-      snapToIndex(index, velocity: velocity)
+      dragScroller = nil
+      snapToIndex(index, velocity: stayOpen ? 0 : velocity)
 
     case .cancelled:
       isPanning = false
       setContentInteractionEnabled(true)
       let cancelVelocity = gesture.velocity(in: self).y
+      let stayOpen = handoffContentIsScrolled()
       let cancelHeight = maxHeight - sheetContainer.transform.ty
       let cancelIndex =
-        activeDragDetentSpecs.flatMap {
+        stayOpen
+        ? maxHeightSnapIndex(including: panStartingIndex)
+        : activeDragDetentSpecs.flatMap {
           $0.count == detentSpecs.count ? $0 : nil
         }.map {
           snapshotBestSnapIndex(
@@ -696,17 +712,50 @@ public final class BottomSheetHostingView: UIView {
       panStartingIndex = nil
       activeDragRange = nil
       activeDragDetentSpecs = nil
-      snapToIndex(cancelIndex, velocity: cancelVelocity)
+      dragScroller = nil
+      snapToIndex(cancelIndex, velocity: stayOpen ? 0 : cancelVelocity)
 
     case .failed:
       isPanning = false
       panStartingIndex = nil
       activeDragRange = nil
       activeDragDetentSpecs = nil
+      dragScroller = nil
       setContentInteractionEnabled(true)
 
     default:
       break
+    }
+  }
+
+  // Lift the sheet to its tallest detent, then hand leftover travel to the list (#22).
+  private func liftSheetThenScrollContent(
+    by distance: CGFloat, within range: (minTy: CGFloat, maxTy: CGFloat)
+  ) {
+    let ty = sheetContainer.transform.ty
+    let lift = min(distance, max(0, ty - range.minTy))
+    if lift > 0 {
+      sheetContainer.transform = CGAffineTransform(translationX: 0, y: ty - lift)
+    }
+    let leftover = distance - lift
+    if leftover > edgeTolerance {
+      driveScroll(by: leftover, forward: true)
+    }
+  }
+
+  // Mirror: scroll the list back to its top before collapsing, so the sheet never
+  // moves under still-scrolled content.
+  private func scrollContentThenCollapseSheet(
+    by distance: CGFloat, within range: (minTy: CGFloat, maxTy: CGFloat)
+  ) {
+    let ty = sheetContainer.transform.ty
+    let sheetAtMax = ty <= range.minTy + edgeTolerance
+    var collapse = distance
+    if sheetAtMax {
+      collapse -= driveScroll(by: distance, forward: false)
+    }
+    if collapse > 0 {
+      sheetContainer.transform = CGAffineTransform(translationX: 0, y: min(range.maxTy, ty + collapse))
     }
   }
 
@@ -780,6 +829,47 @@ public final class BottomSheetHostingView: UIView {
       }
     }
     return nil
+  }
+
+  private func isInverted(_ view: UIView) -> Bool {
+    sequence(first: view, next: \.superview)
+      .prefix { $0 !== sheetContainer }
+      .contains { $0.transform.d < 0 }
+  }
+
+  private func offsetBounds(_ scrollView: UIScrollView) -> (min: CGFloat, max: CGFloat) {
+    let minY = -scrollView.adjustedContentInset.top
+    let maxY =
+      scrollView.contentSize.height - scrollView.bounds.height + scrollView.adjustedContentInset.bottom
+    return (min: minY, max: max(minY, maxY))
+  }
+
+  // Remaining scroll travel for the bound list in the drag direction (forward =
+  // drag-up); an inverted list moves toward the opposite content edge.
+  private func scrollRoom(forward: Bool) -> CGFloat {
+    guard let scrollView = dragScroller else { return 0 }
+    let bounds = offsetBounds(scrollView)
+    let offset = scrollView.contentOffset.y
+    return max(0, forward != dragScrollerInverted ? bounds.max - offset : offset - bounds.min)
+  }
+
+  // Scrolls the bound list up to `distance` (clamped, no overscroll); returns the distance moved.
+  @discardableResult
+  private func driveScroll(by distance: CGFloat, forward: Bool) -> CGFloat {
+    guard let scrollView = dragScroller else { return 0 }
+    let moved = min(distance, scrollRoom(forward: forward))
+    guard moved > 0 else { return 0 }
+    scrollView.contentOffset.y += forward != dragScrollerInverted ? moved : -moved
+    return moved
+  }
+
+  private func handoffContentIsScrolled() -> Bool {
+    scrollRoom(forward: false) > edgeTolerance
+  }
+
+  private func maxHeightSnapIndex(including index: Int?) -> Int {
+    let candidates = snapCandidateIndices(including: index)
+    return candidates.max(by: { detent(at: $0).height < detent(at: $1).height }) ?? targetIndex
   }
 
   override public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
