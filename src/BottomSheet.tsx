@@ -270,11 +270,27 @@ export const BottomSheet = (props: BottomSheetProps) => {
           )}
           <View
             collapsable={false}
-            style={{
-              flex: 1,
-              maxHeight,
-              width: usesNativeOverlay ? windowWidth : undefined,
-            }}
+            // In native-overlay mode the content is reparented into a separate
+            // window. A `flex: 1` wrapper can then collapse to 0×0 *native* bounds
+            // (its explicit width isn't even applied) — the children still draw via
+            // overflow and measure() stays correct, but Android hit-testing can't
+            // descend into a zero-bounds view, so the whole sheet is untappable.
+            // This reproduced on a physical OnePlus (Android 16) but not the
+            // emulator. Sizing the wrapper explicitly (independent of the parent's
+            // flex layout) keeps real bounds; the height matches what `flex: 1`
+            // resolved to before (the max detent height), so content-detent
+            // measurement is unaffected. Inline mode keeps the original flex sizing.
+            style={
+              usesNativeOverlay
+                ? {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: windowWidth,
+                    height: maxHeight,
+                  }
+                : { flex: 1, maxHeight }
+            }
           >
             {children}
             <View collapsable={false} pointerEvents="none" />

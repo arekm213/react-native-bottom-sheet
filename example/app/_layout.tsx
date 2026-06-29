@@ -30,6 +30,13 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="native-overlay-nested"
+              options={{
+                title: 'Native overlay nested mount',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
               name="modal-scroll-view"
               options={{ title: 'Modal with ScrollView', headerShown: false }}
             />
