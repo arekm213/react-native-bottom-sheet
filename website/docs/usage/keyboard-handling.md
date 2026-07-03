@@ -1,0 +1,29 @@
+---
+id: keyboard-handling
+title: Keyboard handling
+sidebar_position: 5
+---
+
+# Keyboard handling
+
+The sheet does not apply keyboard avoidance automatically. This keeps the
+component unopinionated and lets your app choose the keyboard strategy that
+matches its layout: resize content, add bottom padding, use a keyboard-aware
+scroll view, or rely on platform behavior.
+
+For a `'content'` detent, keyboard-driven padding changes the measured content
+height. If you animate that padding yourself, pass
+`animateContentHeight={false}` so the sheet follows the animated content height
+instead of adding its own resize animation.
+
+```tsx
+<ModalBottomSheet
+  detents={[0, 'content']}
+  index={index}
+  onIndexChange={setIndex}
+  surface={/* ... */}
+  animateContentHeight={false}
+>
+  {/* Content with keyboard-driven bottom padding. */}
+</ModalBottomSheet>
+```

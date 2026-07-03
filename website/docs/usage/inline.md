@@ -1,0 +1,28 @@
+---
+id: inline
+title: Inline
+sidebar_position: 2
+---
+
+# Inline
+
+`BottomSheet` renders within your screen layout.
+
+```tsx
+const [index, setIndex] = useState(0);
+const insets = useSafeAreaInsets();
+```
+
+```tsx
+<BottomSheet
+  index={index}
+  onIndexChange={setIndex}
+  surface={
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: 'white' }]} />
+  }
+>
+  <View style={{ padding: 16, paddingBottom: insets.bottom + 16 }}>
+    <Text>Sheet content</Text>
+  </View>
+</BottomSheet>
+```
